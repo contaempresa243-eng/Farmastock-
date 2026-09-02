@@ -54,7 +54,6 @@
                 </button>
             </form>
 
-            <!-- ✅ BOTÃO CORRIGIDO — SEM MAIS ERROS ✅ -->
             <div class="mt-6 text-center">
                 <p class="text-sm text-gray-500 mb-2">Ainda não tem conta?</p>
                 <button id="botao-criar-conta" type="button" class="text-primary font-bold text-lg hover:underline btn">
@@ -66,7 +65,7 @@
         </div>
     </div>
 
-    <!-- ============== TELA DE CADASTRO ✅ GARANTIDO ✅ ============== -->
+    <!-- ============== TELA DE CADASTRO ============== -->
     <div id="tela-cadastro" class="fixed inset-0 bg-gradient-to-br from-primary to-secondary flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <div class="text-center mb-6">
@@ -105,7 +104,7 @@
         </div>
     </div>
 
-    <!-- ============== ÁREA PRINCIPAL (só aparece depois de entrar) ============== -->
+    <!-- ============== ÁREA PRINCIPAL ============== -->
     <div id="app-principal" class="hidden">
         <div class="p-8 text-center">
             <h1 class="text-2xl font-bold text-primary">✅ Bem-vindo ao FarmaStock!</h1>
@@ -137,26 +136,22 @@
 
 
         // ==================================================
-        // ✅ CÓDIGO QUE RESOLVE O PROBLEMA DE UMA VEZ ✅
+        // ✅ BOTÕES GARANTIDOS A FUNCIONAR ✅
         // ==================================================
-        // Espera a página carregar completamente ANTES de ligar os botões
         document.addEventListener('DOMContentLoaded', function() {
             console.log("✅ Página carregada — botões prontos");
 
-            // BOTÃO CRIAR CONTA — LIGADO DIRETAMENTE
             const btnCriar = document.getElementById('botao-criar-conta');
             const telaLogin = document.getElementById('tela-login');
             const telaCadastro = document.getElementById('tela-cadastro');
             const btnVoltar = document.getElementById('botao-voltar-login');
 
-            // AÇÃO AO CLICAR — SEM FALHAS
             btnCriar.addEventListener('click', function() {
                 console.log("🟢 Botão Criar Conta clicado!");
                 telaLogin.classList.add('hidden');
                 telaCadastro.classList.remove('hidden');
             });
 
-            // VOLTAR AO LOGIN
             btnVoltar.addEventListener('click', function() {
                 console.log("🔙 Voltar ao login");
                 telaCadastro.classList.add('hidden');
@@ -205,7 +200,7 @@
                 }
             });
 
-        }); // FIM DO DOMContentLoaded — AQUI ESTAVA O ERRO PRINCIPAL!
+        });
 
 
         // ============== SAIR ==============
