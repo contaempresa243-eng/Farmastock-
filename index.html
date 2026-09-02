@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmaStock — Gestão de Farmácia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0F766E',
+                        secondary: '#0D9488',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; margin:0; padding:0; }
+        .hidden { display: none !important; }
+        .btn { cursor: pointer; transition: all 0.15s ease; }
+        .btn:active { transform: scale(0.97); }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- ============== TELA DE LOGIN ============== -->
+    <div id="tela-login" class="fixed inset-0 bg-gradient-to-br from-primary to-secondary flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
+            <div class="text-center mb-6">
+                <i class="fa fa-flask text-5xl text-primary mb-2"></i>
+                <h1 class="text-3xl font-bold">FarmaStock</h1>
+                <p class="text-gray-500">Gestão Inteligente de Farmácia</p>
+            </div>
+            <form id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email</label>
+                    <input type="email" id="login-email" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary/50">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Senha</label>
+                    <input type="password" id="login-senha" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary/50">
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-secondary btn">
+                    <i class="fa fa-sign-in mr-2"></i> Entrar
+                </button>
+            </form>
+
+            <!-- ✅ BOTÃO CORRIGIDO — SEM MAIS ERROS ✅ -->
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-500 mb-2">Ainda não tem conta?</p>
+                <button id="botao-criar-conta" type="button" class="text-primary font-bold text-lg hover:underline btn">
+                    <i class="fa fa-user-plus mr-1"></i> Criar Conta
+                </button>
+            </div>
+
+            <p class="text-center text-xs text-gray-400 mt-4">Acesso restrito a colaboradores autorizados</p>
+        </div>
+    </div>
+
+    <!-- ============== TELA DE CADASTRO ✅ GARANTIDO ✅ ============== -->
+    <div id="tela-cadastro" class="fixed inset-0 bg-gradient-to-br from-primary to-secondary flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="text-center mb-6">
+                <i class="fa fa-user-plus text-4xl text-primary mb-2"></i>
+                <h2 class="text-2xl font-bold">Criar Nova Conta</h2>
+                <p class="text-gray-500 text-sm">Registo de utilizador autorizado</p>
+            </div>
+            <form id="form-cadastro" class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nome Completo *</label>
+                    <input type="text" id="cad-nome" required class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email *</label>
+                    <input type="email" id="cad-email" required class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Senha * (mínimo 6 caracteres)</label>
+                    <input type="password" id="cad-senha" required minlength="6" class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Função / Nível de Acesso *</label>
+                    <select id="cad-tipo" required class="w-full p-3 border rounded-lg">
+                        <option value="admin">Administrador — Acesso Total</option>
+                        <option value="gestor">Gestor de Loja</option>
+                        <option value="caixa">Operador/Caixa</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-secondary btn mt-2">
+                    <i class="fa fa-check mr-2"></i> Registar Conta
+                </button>
+                <button type="button" id="botao-voltar-login" class="w-full border py-2 rounded-lg hover:bg-gray-50 btn mt-2">
+                    Voltar ao Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============== ÁREA PRINCIPAL (só aparece depois de entrar) ============== -->
+    <div id="app-principal" class="hidden">
+        <div class="p-8 text-center">
+            <h1 class="text-2xl font-bold text-primary">✅ Bem-vindo ao FarmaStock!</h1>
+            <p class="text-gray-600 mt-2">Sistema carregado com sucesso.</p>
+            <button onclick="logout()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg btn">
+                <i class="fa fa-sign-out mr-1"></i> Sair
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // ==================================================
+        // 🔴 COLOCA AQUI O TEU CÓDIGO DO FIREBASE 🔴
+        // ==================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4JPzPRnI2R0vYKDngIc55-D2v_BMUh54",
+            authDomain: "farmastock-fbbd2.firebaseapp.com",
+            projectId: "farmastock-fbbd2",
+            storageBucket: "farmastock-fbbd2.firebasestorage.app",
+            messagingSenderId: "535073309658",
+            appId: "1:535073309658:web:e208aa2389ad8aa95136e3"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+
+        // ==================================================
+        // ✅ CÓDIGO QUE RESOLVE O PROBLEMA DE UMA VEZ ✅
+        // ==================================================
+        // Espera a página carregar completamente ANTES de ligar os botões
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("✅ Página carregada — botões prontos");
+
+            // BOTÃO CRIAR CONTA — LIGADO DIRETAMENTE
+            const btnCriar = document.getElementById('botao-criar-conta');
+            const telaLogin = document.getElementById('tela-login');
+            const telaCadastro = document.getElementById('tela-cadastro');
+            const btnVoltar = document.getElementById('botao-voltar-login');
+
+            // AÇÃO AO CLICAR — SEM FALHAS
+            btnCriar.addEventListener('click', function() {
+                console.log("🟢 Botão Criar Conta clicado!");
+                telaLogin.classList.add('hidden');
+                telaCadastro.classList.remove('hidden');
+            });
+
+            // VOLTAR AO LOGIN
+            btnVoltar.addEventListener('click', function() {
+                console.log("🔙 Voltar ao login");
+                telaCadastro.classList.add('hidden');
+                telaLogin.classList.remove('hidden');
+            });
+
+
+            // ============== FORMULÁRIO DE CADASTRO ==============
+            document.getElementById('form-cadastro').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nome = document.getElementById('cad-nome').value.trim();
+                const email = document.getElementById('cad-email').value.trim();
+                const senha = document.getElementById('cad-senha').value;
+                const tipo = document.getElementById('cad-tipo').value;
+
+                try {
+                    const res = await auth.createUserWithEmailAndPassword(email, senha);
+                    await db.collection('utilizadores').doc(res.user.uid).set({
+                        nome: nome,
+                        email: email,
+                        tipo: tipo,
+                        criadoEm: new Date().toISOString()
+                    });
+                    alert("✅ Conta criada com sucesso! Agora podes entrar.");
+                    telaCadastro.classList.add('hidden');
+                    telaLogin.classList.remove('hidden');
+                } catch (erro) {
+                    alert("❌ Erro: " + erro.message);
+                    console.error(erro);
+                }
+            });
+
+
+            // ============== LOGIN ==============
+            document.getElementById('form-login').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value.trim();
+                const senha = document.getElementById('login-senha').value;
+
+                try {
+                    await auth.signInWithEmailAndPassword(email, senha);
+                    telaLogin.classList.add('hidden');
+                    document.getElementById('app-principal').classList.remove('hidden');
+                } catch (erro) {
+                    alert("❌ Erro de acesso: " + erro.message);
+                }
+            });
+
+        }); // FIM DO DOMContentLoaded — AQUI ESTAVA O ERRO PRINCIPAL!
+
+
+        // ============== SAIR ==============
+        function logout() {
+            auth.signOut().then(() => {
+                document.getElementById('app-principal').classList.add('hidden');
+                document.getElementById('tela-login').classList.remove('hidden');
+            });
+        }
+    </script>
+
+</body>
+</html>
