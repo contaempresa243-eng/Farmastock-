@@ -71,9 +71,55 @@
                     <i class="fa fa-sign-in mr-2"></i> Entrar
                 </button>
             </form>
-            <p class="text-center text-sm text-gray-500 mt-4">
-                Acesso restrito a colaboradores autorizados
-            </p>
+
+            <!-- ✅ BOTÃO CRIAR CONTA — ADICIONADO AQUI ✅ -->
+            <div class="mt-4 text-center">
+                <p class="text-sm text-gray-500 mb-2">Ainda não tem conta?</p>
+                <button onclick="abrirTelaCadastro()" class="text-primary font-bold hover:underline btn">
+                    <i class="fa fa-user-plus mr-1"></i> Criar Conta
+                </button>
+            </div>
+
+            <p class="text-center text-xs text-gray-400 mt-4">Acesso restrito a colaboradores autorizados</p>
+        </div>
+    </div>
+
+    <!-- ============== TELA DE CADASTRO ✅ NOVA ✅ ============== -->
+    <div id="tela-cadastro" class="fixed inset-0 bg-gradient-to-br from-primary to-secondary flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="text-center mb-6">
+                <i class="fa fa-user-plus text-4xl text-primary mb-2"></i>
+                <h2 class="text-2xl font-bold">Criar Nova Conta</h2>
+                <p class="text-gray-500 text-sm">Registo de utilizador autorizado</p>
+            </div>
+            <form id="form-cadastro" class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nome Completo *</label>
+                    <input type="text" id="cad-nome" required class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email *</label>
+                    <input type="email" id="cad-email" required class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Senha * (mínimo 6 caracteres)</label>
+                    <input type="password" id="cad-senha" required minlength="6" class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Função / Nível de Acesso *</label>
+                    <select id="cad-tipo" required class="w-full p-3 border rounded-lg">
+                        <option value="admin">Administrador — Acesso Total (primeiro utilizador)</option>
+                        <option value="gestor">Gestor de Loja — Gestão Completa</option>
+                        <option value="caixa">Operador/Caixa — Apenas Vendas</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-secondary btn mt-2">
+                    <i class="fa fa-check mr-2"></i> Registar Conta
+                </button>
+                <button type="button" onclick="fecharTelaCadastro()" class="w-full border py-2 rounded-lg hover:bg-gray-50 btn mt-2">
+                    Voltar ao Login
+                </button>
+            </form>
         </div>
     </div>
 
@@ -458,8 +504,8 @@
         const firebaseConfig = {
             apiKey: "AIzaSyC4JPzPRnI2R0vYKDngIc55-D2v_BMUh54",
             authDomain: "farmastock-fbbd2.firebaseapp.com",
-            projectId: "myfriens-1e47e",
-            storageBucket: "myfriens-1e47e.firebasestorage.app",
+            projectId: "farmastock-fbbd2",
+            storageBucket: "farmastock-fbbd2.firebasestorage.app",
             messagingSenderId: "141402492230",
             appId: "1:141402492230:web:d5df173f4afef4c253a947"
         };
@@ -475,6 +521,42 @@
         let leitorCodigo = null;
         let dadosRelatorio = null;
         let graficoVendas, graficoStock;
+
+        // ============== ✅ TELAS DE CADASTRO ✅ ==============
+        function abrirTelaCadastro() {
+            document.getElementById('tela-login').classList.add('hidden');
+            document.getElementById('tela-cadastro').classList.remove('hidden');
+        }
+        function fecharTelaCadastro() {
+            document.getElementById('tela-cadastro').classList.add('hidden');
+            document.getElementById('tela-login').classList.remove('hidden');
+        }
+
+        // ============== ✅ FORMULÁRIO DE CADASTRO ✅ ==============
+        document.getElementById('form-cadastro').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nome = document.getElementById('cad-nome').value.trim();
+            const email = document.getElementById('cad-email').value.trim();
+            const senha = document.getElementById('cad-senha').value;
+            const tipo = document.getElementById('cad-tipo').value;
+
+            try {
+                // 1. Criar conta no Firebase Auth
+                const res = await auth.createUserWithEmailAndPassword(email, senha);
+                // 2. Guardar dados adicionais na base de dados
+                await db.collection('utilizadores').doc(res.user.uid).set({
+                    nome: nome,
+                    email: email,
+                    tipo: tipo,
+                    criadoEm: new Date().toISOString()
+                });
+                alert("✅ Conta criada com sucesso! Agora podes fazer login.");
+                fecharTelaCadastro();
+            } catch (erro) {
+                alert("❌ Erro ao criar conta: " + erro.message);
+                console.error(erro);
+            }
+        });
 
         // ============== CONTROLO DE PERMISSÕES ==============
         function aplicarPermissoes(tipo) {
@@ -750,52 +832,4 @@
             atualizarTotalVenda();
         });
         document.getElementById('venda-qtd').addEventListener('input', atualizarTotalVenda);
-        document.getElementById('venda-pago').addEventListener('input', atualizarTroco);
-
-        function atualizarTotalVenda() {
-            const preco = parseFloat(document.getElementById('venda-preco').value) || 0;
-            const qtd = parseInt(document.getElementById('venda-qtd').value) || 0;
-            document.getElementById('venda-total').value = (preco * qtd).toFixed(2) + ' Kz';
-            atualizarTroco();
-        }
-        function atualizarTroco() {
-            const total = parseFloat(document.getElementById('venda-total').value) || 0;
-            const pago = parseFloat(document.getElementById('venda-pago').value) || 0;
-            document.getElementById('venda-troco').value = Math.max(0, pago - total).toFixed(2) + ' Kz';
-        }
-
-        async function registarVenda() {
-            const prodId = document.getElementById('venda-produto').value;
-            const qtd = parseInt(document.getElementById('venda-qtd').value);
-            if (!prodId || qtd < 1) return alert("Preencha todos os dados!");
-
-            const prodRef = db.collection('produtos').doc(prodId);
-            const prodDoc = await prodRef.get();
-            const prod = prodDoc.data();
-
-            if (qtd > prod.stock) return alert("❌ Stock insuficiente! Disponível: " + prod.stock);
-
-            // Dados da venda
-            const venda = {
-                produtoId: prodId,
-                produtoNome: prod.nome,
-                quantidade: qtd,
-                precoUnit: prod.venda,
-                custoUnit: prod.custo,
-                total: prod.venda * qtd,
-                lucro: (prod.venda - prod.custo) * qtd,
-                data: new Date().toISOString(),
-                operador: utilizadorAtual.nome
-            };
-
-            // Gravar venda e atualizar stock
-            await db.collection('vendas').add(venda);
-            await prodRef.update({ stock: prod.stock - qtd });
-
-            // Gerar recibo
-            const numeroRecibo = Date.now().toString().slice(-8);
-            const textoRecibo = `
-FarmaStock — Farmácia
-Luanda • Angola
-📞 ${document.getElementById('config-telefone').value || '---'}
-──────────────────────
+        document
