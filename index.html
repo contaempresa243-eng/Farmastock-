@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmaStock — Gestão de Farmácia</title>
+    <!-- Bibliotecas necessárias -->
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.1/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/vfs_fonts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3.2.0/dist/email.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #0F766E;
+            min-height: 100vh;
+        }
+        .escondido { display: none !important; }
+        .btn { cursor: pointer; border: none; border-radius: 8px; font-weight: bold; transition: all 0.2s; }
+        .btn:active { transform: scale(0.97); }
+        .btn-principal { background: #0F766E; color: white; padding: 12px 24px; }
+        .btn-principal:hover { background: #0D9488; }
+        .btn-secundario { background: #F3F4F6; color: #374151; padding: 10px 20px; border: 1px solid #D1D5DB; }
+        .btn-perigo { background: #DC2626; color: white; padding: 10px 20px; }
+        .btn-aviso { background: #F59E0B; color: white; padding: 10px 20px; }
+        .btn-sucesso { background: #16A34A; color: white; padding: 10px 20px; }
+
+        /* Estrutura base — IGUAL AO QUE FUNCIONA */
+        .tela-login {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        .caixa-branca {
+            background: white;
+            border-radius: 20px;
+            padding: 32px 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 420px;
+        }
+        h1 { font-size: 28px; font-weight: bold; color: #111827; text-align: center; margin-bottom: 4px; }
+        .subtitulo { text-align: center; color: #6B7280; margin-bottom: 32px; }
+        .grupo-input { margin-bottom: 16px; }
+        label { display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 6px; }
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+        input:focus, select:focus { border-color: #0F766E; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1); }
+        .link-texto { text-align: center; margin-top: 20px; font-size: 15px; color: #0F766E; cursor: pointer; font-weight: 500; }
+        .link-texto:active { text-decoration: underline; }
+
+        /* Aplicação Principal */
+        .app-principal { background: white; min-height: 100vh; }
+        .cabecalho { background: #0F766E; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top:0; z-index: 50; }
+        .cabecalho h2 { font-size: 20px; }
+        .info-user { display: flex; gap: 12px; align-items: center; font-size: 14px; }
+        .menu { background: #F9FAFB; border-bottom: 1px solid #E5E7EB; padding: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; position: sticky; top: 56px; z-index: 40; }
+        .menu-btn { background: white; border: 1px solid #E5E7EB; padding: 10px 4px; border-radius: 8px; font-size: 12px; text-align: center; cursor: pointer; }
+        .menu-btn.ativo { background: #0F766E; color: white; border-color: #0F766E; }
+        .conteudo { padding: 20px; }
+        .secao { display: none; }
+        .secao.ativa { display: block; }
+
+        /* Cartões e Tabelas */
+        .grelha { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .cartao { background: #F9FAFB; border-radius: 12px; padding: 16px; border: 1px solid #E5E7EB; }
+        .cartao .valor { font-size: 24px; font-weight: bold; color: #0F766E; }
+        .cartao .etiqueta { font-size: 13px; color: #6B7280; }
+        .alerta { background: #FEF3C7; border: 1px solid #FCD34D; color: #92400E; padding: 12px; border-radius: 8px; margin: 8px 0; }
+        .alerta-perigo { background: #FEE2E2; border-color: #FECACA; color: #991B1B; }
+        .tabela { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+        .tabela th, .tabela td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #E5E7EB; }
+        .tabela th { background: #F9FAFB; font-weight: 600; }
+
+        /* Modal */
+        .modal-fundo { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+        .modal { background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+        .modal-cab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .fechar { background: none; border: none; font-size: 24px; cursor: pointer; color: #6B7280; }
+
+        /* Permissões */
+        .perm-oculto { display: none !important; }
+
+        /* Leitor Código de Barras */
+        .leitor-cam { width: 100%; border-radius: 8px; background: #111; }
+    </style>
+</head>
+<body>
+
+    <!-- ===================== TELA DE LOGIN — EXATAMENTE COMO FUNCIONAVA ===================== -->
+    <div id="telaLogin" class="tela-login">
+        <div class="caixa-branca">
+            <div style="text-align:center; margin-bottom:16px; font-size:40px;">⚗️</div>
+            <h1>FarmaStock</h1>
+            <p class="subtitulo">Gestão Inteligente de Farmácia</p>
+
+            <div class="grupo-input">
+                <label>Email</label>
+                <input type="email" id="inpEmail" placeholder="exemplo@dominio.com" required>
+            </div>
+
+            <div class="grupo-input">
+                <label>Senha</label>
+                <input type="password" id="inpSenha" placeholder="••••••••" required>
+            </div>
+
+            <button id="botaoEntrar" class="btn-principal" style="width:100%;">Entrar</button>
+
+            <p class="link-texto" id="linkRecuperar">Esqueci a minha senha</p>
+
+            <div style="margin-top:24px; text-align:center;">
+                <p style="font-size:14px; color:#6B7280;">Ainda não tem conta?</p>
+                <p class="link-texto" id="linkCriarConta" style="font-weight:bold; font-size:16px;">➕ Criar Conta</p>
+            </div>
+
+            <p style="text-align:center; font-size:12px; color:#9CA3AF; margin-top:16px;">Acesso restrito a colaboradores autorizados</p>
+        </div>
+    </div>
+
+    <!-- ===================== TELA DE CADASTRO — IGUAL AO FUNCIONAL ===================== -->
+    <div id="telaCadastro" class="tela-login escondido">
+        <div class="caixa-branca">
+            <div style="text-align:center; margin-bottom:16px; font-size:36px;">👤</div>
+            <h1>Criar Nova Conta</h1>
+            <p class="subtitulo">Registo de utilizador autorizado</p>
+
+            <div class="grupo-input">
+                <label>Nome Completo</label>
+                <input type="text" id="cadNome" placeholder="Seu nome completo" required>
+            </div>
+
+            <div class="grupo-input">
+                <label>Email</label>
+                <input type="email" id="cadEmail" placeholder="exemplo@dominio.com" required>
+            </div>
+
+            <div class="grupo-input">
+                <label>Senha (mínimo 6 caracteres)</label>
+                <input type="password" id="cadSenha" placeholder="••••••••" required minlength="6">
+            </div>
+
+            <div class="grupo-input">
+                <label>Função / Nível de Acesso</label>
+                <select id="cadTipo">
+                    <option value="admin">Administrador — Acesso Total</option>
+                    <option value="gestor">Gestor de Loja</option>
+                    <option value="caixa">Operador/Caixa</option>
+                </select>
+            </div>
+
+            <button id="botaoRegistar" class="btn-principal" style="width:100%;">Registar Conta</button>
+            <button id="botaoVoltarLogin" class="btn-secundario" style="width:100%; margin-top:12px;">Voltar ao Login</button>
+        </div>
+    </div>
+
+    <!-- ===================== APLICAÇÃO PRINCIPAL — COMPLETA ===================== -->
+    <div id="appPrincipal" class="app-principal escondido">
+
+        <!-- CABEÇALHO -->
+        <header class="cabecalho">
+            <h2>⚗️ FarmaStock</h2>
+            <div class="info-user">
+                <span id="nomeUser">—</span>
+                <span id="tipoUser" style="background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:12px; font-size:12px;">—</span>
+                <button id="botaoSair" class="btn-perigo" style="padding:6px 12px; font-size:14px;">Sair</button>
+            </div>
+        </header>
+
+        <!-- MENU DE NAVEGAÇÃO -->
+        <nav class="menu">
+            <button class="menu-btn ativo" onclick="abrirSecao('dashboard')">📊 Painel</button>
+            <button class="menu-btn" onclick="abrirSecao('produtos')">💊 Produtos</button>
+            <button class="menu-btn" onclick="abrirSecao('pdv')">🛒 Vendas</button>
+            <button class="menu-btn perm-oculto" onclick="abrirSecao('relatorios')">📄 Relatórios</button>
+            <button class="menu-btn perm-oculto" onclick="abrirSecao('utilizadores')">👥 Utilizadores</button>
+            <button class="menu-btn perm-oculto" onclick="abrirSecao('configuracoes')">⚙️ Definições</button>
+        </nav>
+
+        <main class="conteudo">
+
+            <!-- 📊 DASHBOARD -->
+            <section id="dashboard" class="secao ativa">
+                <h3 style="font-size:22px; font-weight:bold; margin-bottom:16px;">Painel Geral</h3>
+                
+                <div class="grelha">
+                    <div class="cartao">
+                        <p class="valor" id="resumoTotalProd">0</p>
+                        <p class="etiqueta">Total Produtos</p>
+                    </div>
+                    <div class="cartao">
+                        <p class="valor" id="resumoStockBaixo" style="color:#F59E0B;">0</p>
+                        <p class="etiqueta">Stock Baixo</p>
+                    </div>
+                    <div class="cartao">
+                        <p class="valor" id="resumoVencer" style="color:#DC2626;">0</p>
+                        <p class="etiqueta">A Vencer</p>
+                    </div>
+                    <div class="cartao">
+                        <p class="valor" id="resumoLucroDia" style="color:#16A34A;">0 Kz</p>
+                        <p class="etiqueta">Lucro do Dia</p>
+                    </div>
+                </div>
+
+                <div class="alerta" id="caixaAlertas">
+                    <strong>⚠️ Alertas:</strong>
+                    <div id="listaAlertas">Sem alertas no momento ✅</div>
+                </div>
+
+                <div style="margin-top:20px; display:grid; gap:20px;">
+                    <div class="cartao">
+                        <h4 style="font-weight:bold; margin-bottom:12px;">Vendas — Últimos 7 Dias</h4>
+                        <canvas id="graficoVendas" height="180"></canvas>
+                    </div>
+                    <div class="cartao">
+                        <h4 style="font-weight:bold; margin-bottom:12px;">Distribuição de Stock</h4>
+                        <canvas id="graficoStock" height="180"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 💊 PRODUTOS -->
+            <section id="produtos" class="secao">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+                    <h3 style="font-size:22px; font-weight:bold;">Gestão de Produtos</h3>
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="abrirLeitor()" class="btn-secundario">📷 Ler Código</button>
+                        <button onclick="abrirModalProduto()" class="btn-principal perm-oculto">➕ Novo Produto</button>
+                    </div>
+                </div>
+
+                <!-- Leitor Código de Barras -->
+                <div id="areaLeitor" class="escondido cartao" style="margin-bottom:16px;">
+                    <video id="videoLeitor" class="leitor-cam" autoplay playsinline></video>
+                    <p style="font-size:13px; color:#6B7280; margin-top:8px; text-align:center;">Aproxime o código de barras</p>
+                    <button onclick="pararLeitor()" class="btn-secundario" style="width:100%; margin-top:8px;">Fechar Leitor</button>
+                </div>
+
+                <div class="grupo-input">
+                    <input type="text" id="pesquisarProd" placeholder="Pesquisar por nome, código ou lote..." oninput="filtrarProdutos()">
+                </div>
+
+                <div class="cartao" style="overflow-x:auto;">
+                    <table class="tabela">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Nome</th>
+                                <th>Stock</th>
+                                <th>Custo</th>
+                                <th>Venda</th>
+                                <th>Lucro</th>
+                                <th class="perm-oculto">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaProdutos">
+                            <tr><td colspan="7" style="text-align:center; color:#6B7280; padding:20px;">Carregando dados...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 🛒 PONTO DE VENDA -->
+            <section id="pdv" class="secao">
+                <h3 style="font-size:22px; font-weight:bold; margin-bottom:16px;">Ponto de Venda</h3>
+                
+                <div style="display:grid; gap:20px;">
+                    <div class="cartao">
+                        <h4 style="font-weight:bold; margin-bottom:12px;">Nova Venda</h4>
+                        <div class="grupo-input">
+                            <label>Produto</label>
+                            <select id="selProduto" onchange="atualizarValorVenda()">
+                                <option value="">-- Selecione --</option>
+                            </select>
+                        </div>
+                        <div class="grupo-input">
+                            <label>Quantidade</label>
+                            <input type="number" id="qtdVenda" min="1" value="1" oninput="atualizarValorVenda()">
+                        </div>
+                        <div class="grupo-input">
+                            <label>Preço Unitário</label>
+                            <input type="text" id="precoUnit" readonly style="background:#F9FAFB;">
+                        </div>
+                        <div class="grupo-input">
+                            <label>Total da Venda</label>
+                            <input type="text" id="totalVenda" readonly style="background:#F9FAFB; font-weight:bold; font-size:18px;">
+                        </div>
+                        <div class="grupo-input">
+                            <label>Valor Pago</label>
+                            <input type="number" id="valorPago" min="0" oninput="calcularTroco()">
+                        </div>
+                        <div class="grupo-input">
+                            <label>Troco</label>
+                            <input type="text" id="troco" readonly style="background:#F9FAFB;">
+                        </div>
+                        <button onclick="finalizarVenda()" class="btn-sucesso" style="width:100%; padding:14px; font-size:16px;">✅ Finalizar Venda</button>
+                    </div>
+
+                    <div class="cartao">
+                        <h4 style="font-weight:bold; margin-bottom:12px;">Recibo</h4>
+                        <div id="recibo" style="border:1px solid #E5E7EB; padding:16px; border-radius:8px; min-height:200px; font-size:14px;">
+                            <p style="color:#6B7280; text-align:center;">Recibo será gerado após venda</p>
+                        </div>
+                        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;">
+                            <button onclick="imprimirRecibo()" class="btn-secundario">🖨️ Imprimir</button>
+                            <button onclick="partilharWpp()" class="btn-sucesso">📱 WhatsApp</button>
+                            <button onclick="partilharSMS()" class="btn-principal">✉️ SMS</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 📄 RELATÓRIOS -->
+            <section id="relatorios" class="secao perm-oculto">
+                <h3 style="font-size:22px; font-weight:bold; margin-bottom:16px;">Relatórios e Exportação</h3>
+                
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:12px; margin-bottom:20px;">
+                    <button onclick="gerarRelatorio('stock')" class="cartao btn" style="text-align:left;">📦 Stock Completo</button>
+                    <button onclick="gerarRelatorio('vendas')" class="cartao btn" style="text-align:left;">🛒 Histórico de Vendas</button>
+                    <button onclick="gerarRelatorio('lucro')" class="cartao btn" style="text-align:left;">💰 Lucro e Margem</button>
+                    <button onclick="gerarRelatorio('validade')" class="cartao btn" style="text-align:left;">📅 Validades</button>
+                </div>
+
+                <div id="areaRelatorio" class="cartao escondido">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h4 id="tituloRel" style="font-weight:bold;">Relatório</h4>
+                        <div style="display:flex; gap:8px;">
+                            <button onclick="exportarPDF()" class="btn-perigo" style="padding:6px 12px; font-size:14px;">PDF</button>
+                            <button onclick="exportarExcel()" class="btn-sucesso" style="padding:6px 12px; font-size:14px;">Excel</button>
+                        </div>
+                    </div>
+                    <div id="conteudoRelatorio" style="overflow-x:auto;"></div>
+                </div>
+            </section>
+
+            <!-- 👥 UTILIZADORES -->
+            <section id="utilizadores" class="secao perm-oculto">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <h3 style="font-size:22px; font-weight:bold;">Gestão de Utilizadores</h3>
+                    <button onclick="abrirModalUtilizador()" class="btn-principal">➕ Novo Utilizador</button>
+                </div>
+                <div class="cartao" style="overflow-x:auto;">
+                    <table class="tabela">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Função</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaUtilizadores">
+                            <tr><td colspan="4" style="text-align:center; color:#6B7280; padding:20px;">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ⚙️ CONFIGURAÇÕES -->
+            <section id="configuracoes" class="secao perm-oculto">
+                <h3 style="font-size:22px; font-weight:bold; margin-bottom:16px;">Definições do Sistema</h3>
+                <div class="cartao">
+                    <div class="grupo-input">
+                        <label>Nome da Farmácia</label>
+                        <input type="text" id="nomeFarmacia" value="FarmaStock">
+                    </div>
+                    <div class="grupo-input">
+                        <label>Stock Mínimo Padrão</label>
+                        <input type="number" id="stockMinPadrao" value="5">
+                    </div>
+                    <div class="grupo-input">
+                        <label>Email para Notificações</label>
+                        <input type="email" id="emailNotif" placeholder="notificacoes@farmacia.ao">
+                    </div>
+                    <div class="grupo-input">
+                        <label>Service ID EmailJS</label>
+                        <input type="text" id="emailjsService" placeholder="service_xxxxxxx">
+                    </div>
+                    <div class="grupo-input">
+                        <label>Template ID EmailJS</label>
+                        <input type="text" id="emailjsTemplate" placeholder="template_xxxxxxx">
+                    </div>
+                    <button onclick="salvarConfigs()" class="btn-principal" style="width:100%;">💾 Salvar Definições</button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- 📝 MODAL: PRODUTO -->
+    <div id="modalProduto" class="modal-fundo escondido">
+        <div class="modal">
+            <div class="modal-cab">
+                <h4 style="font-size:18px; font-weight:bold;">Produto</h4>
+                <button class="fechar" onclick="fecharModal('modalProduto')">&times;</button>
+            </div>
+            <form id="formProduto">
+                <input type="hidden" id="prodId">
+                <div class="grupo-input">
+                    <label>Código de Barras</label>
+                    <input type="text" id="prodCodigo">
+                </div>
+                <div class="grupo-input">
+                    <label>Nome do Produto *</label>
+                    <input type="text" id="prodNome" required>
+                </div>
+                <div class="grupo-input">
+                    <label>Lote *</label>
+                    <input type="text" id="prodLote" required>
+                </div>
+                <div class="grupo-input">
+                    <label>Data de Validade *</label>
+                    <input type="date" id="prodValidade" required>
+                </div>
+                <div class="grupo-input">
+                    <label>Stock Atual *</label>
+                    <input type="number" id="prodStock" min="0" required>
+                </div>
+                <div class="grupo-input">
+                    <label>Stock Mínimo *</label>
+                    <input type="number" id="prodMinimo" min="1" value="5" required>
+                </div>
+                <div class="grupo-input">
+                    <label>Preço de Custo (Kz) *</label>
+                    <input type="number" id="prodCusto" min="0" step="0.01" required oninput="calcularLucro()">
+                </div>
+                <div class="grupo-input">
+                    <label>Preço de Venda (Kz) *</label>
+                    <input type="number" id="prodVenda" min="0" step="0.01" required oninput="calcularLucro()">
+                </div>
+                <div class="cartao" style="background:#F0FDF4; border-color:#BBF7D0;">
+                    <p><strong>Lucro Unitário:</strong> <span id="prodLucro">0 Kz</span></p>
+                    <p style="font-size:13px; color:#6B7280;">Margem: <span id="prodMargem">0%</span></p>
+                </div>
+                <button type="submit" class="btn-principal" style="width:100%; margin-top:12px;">💾 Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 📝 MODAL: UTILIZADOR -->
+    <div id="modalUtilizador" class="modal-fundo escondido">
+        <div class="modal">
+            <div class="modal-cab">
+                <h4 style="font-size:18px; font-weight:bold;">Novo Utilizador</h4>
+                <button class="fechar" onclick="fecharModal('modalUtilizador')">&times;</button>
+            </div>
+            <form id="formUtilizador">
+                <div class="grupo-input">
+                    <label>Nome Completo *</label>
+                    <input type="text" id="utilNome" required>
+                </div>
+                <div class="grupo-input">
+                    <label>Email *</label>
+                    <input type="email" id="utilEmail" required>
+                </div>
+                <div class="grupo-input">
+                    <label>Senha *</label>
+                    <input type="password" id="utilSenha" required minlength="6">
+                </div>
+                <div class="grupo-input">
+                    <label>Função *</label>
+                    <select id="utilTipo">
+                        <option value="admin">Administrador</option>
+                        <option value="gestor">Gestor</option>
+                        <option value="caixa">Caixa</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-principal" style="width:100%; margin-top:12px;">➕ Criar Conta</button>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        // ==================================================
+        // 🔴 COLOCA AQUI OS TEUS DADOS DO FIREBASE — EXATAMENTE COPIADOS
+        // ==================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4JPzPRnI2R0vYKDngIc55-D2v_BMUh54",
+            authDomain: "farmastock-fbbd2.firebaseapp.com",
+            projectId: "farmastock-fbbd2",
+            storageBucket: "farmastock-fbbd2.firebasestorage.app",
+            messagingSenderId: "535073309658",
+            appId: "1:535073309658:web:e208aa2389ad8aa95136e3"
+        };
+
+        // Inicializar serviços
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        emailjs.init("SEU_PUBLIC_KEY_AQUI"); // ← COLOCA A CHAVE PÚBLICA DO EMAILJS
+
+        // Variáveis globais
+        let utilizadorAtual = null;
+        let tipoUtilizador = '';
+        let leitorCodigo = null;
+        let graficoVendas, graficoStock;
+        let listaProdutos = [];
+        let ultimaVenda = null;
+
+
+        // ==================================================
+        // ✅ CÓDIGO PRINCIPAL — IGual AO QUE FUNCIONAVA, COM NOVas FUNÇÕES
+        // ==================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("✅ Sistema completo carregado!");
+
+            // --- LOGIN / CADASTRO — EXATAMENTE COMO FUNCIONAVA ---
+            const telaLogin = document.getElementById('telaLogin');
+            const telaCadastro = document.getElementById('telaCadastro');
+            const appPrincipal = document.getElementById('appPrincipal');
+
+            const linkCriarConta = document.getElementById('linkCriarConta');
+            const botaoVoltarLogin = document.getElementById('botaoVoltarLogin');
+            const botaoEntrar = document.getElementById('botaoEntrar');
+            const botaoRegistar = document.getElementById('botaoRegistar');
+            const botaoSair = document.getElementById('botaoSair');
+            const linkRecuperar = document.getElementById('linkRecuperar');
+
+            linkCriarConta.addEventListener('click', () => {
+                telaLogin.classList.add('escondido');
+                telaCadastro.classList.remove('escondido');
+            });
+            botaoVoltarLogin.addEventListener('click', () => {
+                telaCadastro.classList.add('escondido');
+                telaLogin.classList.remove('escondido');
+            });
+            linkRecuperar.addEventListener('click', async () => {
+                const email = prompt("📧 Digite o email:");
+                if (!email) return;
+                try {
+                    await auth.sendPasswordResetEmail(email);
+                    alert("✅ Link enviado!");
+                } catch (e) { alert("❌ " + e.message); }
+            });
+
+            botaoEntrar.addEventListener('click', async () => {
+                const email = document.getElementById('inpEmail').value.trim();
+                const senha = document.getElementById('inpSenha').value;
+                if (!email || !senha) return alert("⚠️ Preencha todos os campos!");
+
+                try {
+                    const res = await auth.signInWithEmailAndPassword(email, senha);
+                    const doc = await db.collection('utilizadores').doc(res.user.uid).get();
+                    if (!doc.exists) throw new Error("Conta não encontrada");
+
+                    utilizadorAtual = { id: res.user.uid, ...doc.data() };
+                    tipoUtilizador = utilizadorAtual.tipo;
+
+                    aplicarPermissoes(tipoUtilizador);
+                    document.getElementById('nomeUser').textContent = utilizadorAtual.nome.split(' ')[0];
+                    document.getElementById('tipoUser').textContent = tipoUtilizador.toUpperCase();
+
+                    telaLogin.classList.add('escondido');
+                    telaCadastro.classList.add('escondido');
+                    appPrincipal.classList.remove('escondido');
+
+                    await carregarDadosIniciais();
+
+                } catch (e) { alert("❌ " + e.message); }
+            });
+
+            botaoRegistar.addEventListener('click', async () => {
+                const nome = document.getElementById('cadNome').value.trim();
+                const email = document.getElementById('cadEmail').value.trim();
+                const senha = document.getElementById('cadSenha').value;
+                const tipo = document.getElementById('cadTipo').value;
+
+                if (!nome || !email || !senha) return alert("⚠️ Preencha todos os campos!");
+                if (senha.length < 6) return alert("⚠️ Mínimo 6 caracteres!");
+
+                try {
+                    const res = await auth.createUserWithEmailAndPassword(email, senha);
+                    await db.collection('utilizadores').doc(res.user.uid).set({
+                        nome, email, tipo, criadoEm: new Date().toISOString()
+                    });
+                    alert("✅ Conta criada! Faça login.");
+                    telaCadastro.classList.add('escondido');
+                    telaLogin.classList.remove('escondido');
+                } catch (e) {
+                    if (e.code === 'auth/email-already-in-use') alert("⚠️ Email já existe!");
+                    else alert("❌ " + e.message);
+                }
+            });
+
+            botaoSair.addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    appPrincipal.classList.add('escondido');
+                    telaLogin.classList.remove('escondido');
+                });
+            });
+
+            // Detetar sessão ativa
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    const doc = await db.collection('utilizadores').doc(user.uid).get();
+                    if (doc.exists) {
+                        utilizadorAtual = { id: user.uid, ...doc.data() };
+                        tipoUtilizador = utilizadorAtual.tipo;
+                        aplicarPermissoes(tipoUtilizador);
+                        document.getElementById('nomeUser').textContent = utilizadorAtual.nome.split(' ')[0];
+                        document.getElementById('tipoUser').textContent = tipoUtilizador.toUpperCase();
+                        telaLogin.classList.add('escondido');
+                        telaCadastro.classList.add('escondido');
+                        appPrincipal.classList.remove('escondido');
+                        await carregarDadosIniciais();
+                    }
+                }
+            });
+
+
+            // --- FORMULÁRIOS ---
+            document.getElementById('formProduto').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('prodId').value;
+                const dados = {
+                    codigo: document.getElementById('prodCodigo').value.trim(),
+                    nome: document.getElementById('prodProdNome').value.trim(),
+                    lote: document.getElementById('prodLote').value.trim(),
+                    validade: document.getElementById('prodValidade').value,
+                    stock: parseInt(document.getElementById('prodStock').value),
+                    minimo: parseInt(document.getElementById('prodMinimo').value),
+                    custo: parseFloat(document.getElementById('prodCusto').value),
+                    venda: parseFloat(document.getElementById('prodVenda').value),
+                    atualizadoEm: new Date().toISOString()
+                };
+
+                try {
+                    if (id) await db.collection('produtos').doc(id).update(dados);
+                    else await db.collection('produtos').add({...dados, criadoEm: new Date().toISOString()});
+                    
+                    fecharModal('modalProduto');
+                    await carregarListaProdutos();
+                    alert("✅ Produto salvo!");
+                } catch (erro) { alert("❌ " + erro.message); }
+            });
+
+            document.getElementById('formUtilizador').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const nome = document.getElementById('utilNome').value.trim();
+                const email = document.getElementById('utilEmail').value.trim();
+                const senha = document.getElementById('utilSenha').value;
+                const tipo = document.getElementById('utilTipo').value;
+
+                try {
+                    const res = await auth.createUserWithEmailAndPassword(email, senha);
+                    await db.collection('utilizadores').doc(res.user.uid).set({
+                        nome, email, tipo, criadoEm: new Date().toISOString()
+                    });
+                    fecharModal('modalUtilizador');
+                    await carregarListaUtilizadores();
+                    alert("✅ Utilizador criado!");
+                } catch (erro) { alert("❌ " + erro.message); }
+            });
+
+        }); // ✅ FIM DO DOMContentLoaded — TUDO DENTRO, SEM CONFLITOS!
+
+
+        // ==================================================
+        // 🛠️ FUNÇÕES AUXILIARES — TODAS NOVAS, SEM ALTERAR O QUE FUNCIONA
+        // ==================================================
+
+        // --- PERMISSÕES ---
+        function aplicarPermissoes(tipo) {
+            document.querySelectorAll('.perm-oculto').forEach(el => el.classList.add('escondido'));
+            if (tipo === 'admin') {
+                document.querySelectorAll('.perm-oculto').forEach(el => el.classList.remove('escondido'));
+            } else if (tipo === 'gestor') {
+                document.querySelectorAll('.perm-oculto:not(.apenas-admin)').forEach(el => el.classList.remove('escondido'));
+            }
+            if (tipo === 'caixa') {
+                // Apenas PDV
+                ['dashboard', 'produtos', 'relatorios', 'utilizadores', 'configuracoes'].forEach(id => {
+                    document.querySelector(`[onclick="abrirSecao('${id}')"]`)?.classList.add('escondido');
+                });
+                abrirSecao('pdv');
+            }
+        }
+
+        // --- NAVEGAÇÃO ---
+        function abrirSecao(id) {
+            document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
+            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('ativo'));
+            document.getElementById(id).classList.add('ativa');
+            event.target.classList.add('ativo');
+        }
+
+        // --- MODAIS ---
+        function abrirModalProduto(id = null, dados = null) {
+            document.getElementById('modalProduto').classList.remove('escondido');
+            if (id) {
+                document.getElementById('prodId').value = id;
+                Object.keys(dados).forEach(k => {
+                    const el = document.getElementById(`prod${k.charAt(0).toUpperCase()+k.slice(1)}`);
+                    if (el) el.value = dados[k];
+                });
+                calcularLucro();
+            } else {
+                document.getElementById('formProduto').reset();
+                document.getElementById('prodId').value = '';
+            }
+        }
+        function abrirModalUtilizador() { document.getElementById('modalUtilizador').classList.remove('escondido'); }
+        function fecharModal(id) { document.getElementById(id).classList.add('escondido'); }
+
+        // --- CÁLCULOS ---
+        function calcularLucro() {
+            const custo = parseFloat(document.getElementById('prodCusto').value) || 0;
+            const venda = parseFloat(document.getElementById('prodVenda').value) || 0;
+            const lucro = venda - custo;
+            const margem = custo > 0 ? ((lucro / custo) * 100).toFixed(1) : 0;
+            document.getElementById('prodLucro').textContent = `${lucro.toFixed(2)} Kz`;
+            document.getElementById('prodMargem').textContent = `${margem}%`;
+        }
+        function atualizarValorVenda() {
+            const sel = document.getElementById('selProduto');
+            const prod = listaProdutos.find(p => p.id === sel.value);
+            if (prod) {
+                document.getElementById('precoUnit').value = prod.venda.toFixed(2) + ' Kz';
+                const qtd = parseInt(document.getElementById('qtdVenda').value) || 1;
+                document.getElementById('totalVenda').value = (prod.venda * qtd).toFixed(2) + ' Kz';
+            }
+            calcularTroco();
+        }
+        function calcularTroco() {
+            const total = parseFloat(document.getElementById('totalVenda').value) || 0;
+            const pago = parseFloat(document.getElementById('valorPago').value) || 0;
+            document.getElementById('troco').value = Math.max(0, pago - total).toFixed(2) + ' Kz';
+        }
+
+        // --- LEITURA DE CÓDIGO DE BARRAS ---
+        async function abrirLeitor() {
+            document.getElementById('areaLeitor').classList.remove('escondido');
+            const video = document.getElementById('videoLeitor');
+            try {
+                leitorCodigo = new ZXing.BrowserMultiFormatReader();
+                await leitorCodigo.decodeFromVideoDevice(null, 'videoLeitor', (res, err) => {
+                    if (res) {
+                        pararLeitor();
+                        document.getElementById('prodCodigo').value = res.text;
+                        abrirModalProduto();
+                    }
+                });
+            } catch (e) { alert("❌ Câmara indisponível: " + e.message); }
+        }
+        function pararLeitor() {
+            if (leitorCodigo) leitorCodigo.reset();
+            document.getElementById('areaLeitor').classList.add('escondido');
+        }
+
+        // --- DADOS E GRÁFICOS ---
+        async function carregarDadosIniciais() {
+            await Promise.all([
+                carregarListaProdutos(),
+                carregarListaUtilizadores(),
+                carregarDashboard(),
+                inicializarGraficos()
+            ]);
+        }
+        async function carregarListaProdutos() {
+            const snap = await db.collection('produtos').get();
+            listaProdutos = snap.docs.map(d => ({id:d.id, ...d.data()}));
+            
+            // Preencher select PDV
+            const sel = document.getElementById('selProduto');
+            sel.innerHTML = '<option value="">-- Selecione --</option>';
+            listaProdutos.forEach(p => sel.innerHTML += `<option value="${p.id}">${p.nome} (${p.codigo || 'S/C'})</option>`);
+
+            // Preencher tabela
+            const tbody = document.getElementById('tabelaProdutos');
+            tbody.innerHTML = '';
+            listaProdutos.forEach(p => {
+                const estiloStock = p.stock <= p.minimo ? 'color:#F59E0B; font-weight:bold;' : '';
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.codigo || '—'}</td>
+                        <td>${p.nome}</td>
+                        <td style="${estiloStock}">${p.stock}</td>
+                        <td>${p.custo.toFixed(2)} Kz</td>
+                        <td>${p.venda.toFixed(2)} Kz</td>
+                        <td>${(p.venda - p.custo).toFixed(2)} Kz</td>
+                        <td class="perm-oculto">
+                            <button onclick='abrirModalProduto("${p.id}", ${JSON.stringify(p).replace(/'/g,"\\'")})' class="btn-secundario" style="padding:4px 8px; font-size:12px;">Editar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+        async function carregarListaUtilizadores() {
+            const snap = await db.collection('utilizadores').get();
+            const tbody = document.getElementById('tabelaUtilizadores');
+            tbody.innerHTML = '';
+            snap.docs.forEach(d => {
+                const u = d.data();
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${u.nome}</td>
+                        <td>${u.email}</td>
+                        <td>${u.tipo}</td>
+                        <td><button class="btn-perigo" style="padding:4px 8px; font-size:12px;">Remover</button></td>
+                    </tr>
+                `;
+            });
+        }
+        async function carregarDashboard() {
+            const hoje = new Date();
+            const hojeStr = hoje.toISOString().split('T')[0];
+
+            // Contagens
+            const total = listaProdutos.length;
+            const stockBaixo = listaProdutos.filter(p => p.stock <= p.minimo).length;
+            const vencer = listaProdutos.filter(p => {
+                const dias = Math.ceil((new Date(p.validade) - hoje) / 86400000);
+                return dias >=0 && dias <=30;
+            }).length;
+
+            // Lucro do dia
+            const vendasSnap = await db.collection('vendas').where('data', '>=', hojeStr).get();
+            const lucroDia = vendasSnap.docs.reduce((sum, d) => sum + (d.data().lucro || 0), 0);
+
+            // Atualizar valores
+            document.getElementById('resumoTotalProd').textContent = total;
+            document.getElementById('resumoStockBaixo').textContent = stockBaixo;
+            document.getElementById('resumoVencer').textContent = vencer;
+            document.getElementById('resumoLucroDia').textContent = lucroDia.toFixed(2) + ' Kz';
+
+            // Alertas
+            const alertas = [];
+            if (stockBaixo > 0) alertas.push(`⚠️ ${stockBaixo} produtos com stock baixo!`);
+            if (vencer > 0) alertas.push(`⚠️ ${vencer} produtos próximos do vencimento!`);
+            document.getElementById('listaAlertas').innerHTML = alertas.length ? alertas.join('<br>') : 'Sem alertas ✅';
+            document.getElementById('caixaAlertas').classList.toggle('alerta-perigo', alertas.length > 0);
+        }
+        async function inicializarGraficos() {
+            const ctx1 = document.getElementById('graficoVendas').getContext('2d');
+            graficoVendas = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],
+                    datasets: [{ label: 'Vendas (Kz)', data: [0,0,0,0,0,0,0], borderColor: '#0F766E', tension:0.3, fill:true, backgroundColor:'rgba(15,118,110,0.1)' }]
+                },
+                options: { responsive:true, plugins:{legend:{display:false}} }
+            });
+
+            const ctx2 = document.getElementById('graficoStock').getContext('2d');
+            graficoStock = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Disponível', 'Baixo', 'Esgotado'],
+                    datasets: [{ data: [70,20,10], backgroundColor:
