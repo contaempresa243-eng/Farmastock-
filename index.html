@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmaStock — Gestão de Farmácia</title>
+    <!-- Bibliotecas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.1/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/vfs_fonts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0F766E',
+                        secondary: '#0D9488',
+                        danger: '#DC2626',
+                        warning: '#F59E0B',
+                        success: '#16A34A',
+                        pdv: '#1E40AF',
+                        admin: '#7C3AED',
+                        gestor: '#EA580C',
+                        caixa: '#059669'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .secao { display: none; }
+        .secao.ativa { display: block; }
+        .btn { transition: all 0.15s ease; }
+        .btn:active { transform: scale(0.97); }
+        .codigo-barras-video { border-radius: 8px; width: 100%; max-height: 300px; object-fit: cover; background: #000; }
+        .alerta-piscar { animation: piscar 1s infinite alternate; }
+        @keyframes piscar { from { opacity: 1; } to { opacity: 0.5; } }
+        .perm-oculto { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+
+    <!-- ============== TELA DE LOGIN ============== -->
+    <div id="tela-login" class="fixed inset-0 bg-gradient-to-br from-primary to-secondary flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
+            <div class="text-center mb-6">
+                <i class="fa fa-flask text-5xl text-primary mb-2"></i>
+                <h1 class="text-3xl font-bold">FarmaStock</h1>
+                <p class="text-gray-500">Gestão Inteligente de Farmácia</p>
+            </div>
+            <form id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email</label>
+                    <input type="email" id="login-email" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary/50">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Senha</label>
+                    <input type="password" id="login-senha" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary/50">
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-secondary btn">
+                    <i class="fa fa-sign-in mr-2"></i> Entrar
+                </button>
+            </form>
+            <p class="text-center text-sm text-gray-500 mt-4">
+                Acesso restrito a colaboradores autorizados
+            </p>
+        </div>
+    </div>
+
+    <!-- ============== APLICAÇÃO PRINCIPAL ============== -->
+    <div id="app-principal" class="max-w-6xl mx-auto bg-white min-h-screen shadow-xl hidden">
+
+        <!-- CABEÇALHO -->
+        <header class="bg-primary text-white p-4 sticky top-0 z-40 shadow-md">
+            <div class="flex justify-between items-center">
+                <h1 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fa fa-flask"></i> <span id="app-titulo-topo">FarmaStock</span>
+                </h1>
+                <div class="flex items-center gap-3">
+                    <span id="nome-user" class="text-sm bg-white/20 px-3 py-1 rounded-full">—</span>
+                    <span id="tipo-user" class="text-xs px-2 py-1 rounded-full bg-white/20">—</span>
+                    <button onclick="logout()" class="hover:bg-white/20 p-2 rounded-lg btn">
+                        <i class="fa fa-sign-out"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- MENU DE NAVEGAÇÃO -->
+        <nav class="bg-gray-50 border-b p-2 sticky top-16 z-30">
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-2 text-sm font-medium">
+                <button onclick="abrirSecao('dashboard')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn" id="nav-dashboard">
+                    <i class="fa fa-chart-pie block text-lg mb-1"></i>Painel
+                </button>
+                <button onclick="abrirSecao('produtos')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn" id="nav-produtos">
+                    <i class="fa fa-cubes block text-lg mb-1"></i>Produtos
+                </button>
+                <button onclick="abrirSecao('pdv')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn" id="nav-pdv">
+                    <i class="fa fa-shopping-cart block text-lg mb-1"></i>Vendas
+                </button>
+                <button onclick="abrirSecao('relatorios')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn" id="nav-relatorios">
+                    <i class="fa fa-file-text block text-lg mb-1"></i>Relatórios
+                </button>
+                <button onclick="abrirSecao('utilizadores')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn perm-gestor perm-admin" id="nav-utilizadores">
+                    <i class="fa fa-users block text-lg mb-1"></i>Utilizadores
+                </button>
+                <button onclick="abrirSecao('configuracoes')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn perm-admin" id="nav-configuracoes">
+                    <i class="fa fa-cog block text-lg mb-1"></i>Definições
+                </button>
+            </div>
+        </nav>
+
+        <main class="p-4">
+
+            <!-- 📊 DASHBOARD -->
+            <section id="dashboard" class="secao ativa">
+                <h2 class="text-2xl font-bold mb-4">Painel Geral</h2>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-blue-50 p-4 rounded-lg border">
+                        <p class="text-sm text-gray-500">Total Produtos</p>
+                        <p class="text-2xl font-bold text-blue-700" id="resumo-total-prod">0</p>
+                    </div>
+                    <div class="bg-amber-50 p-4 rounded-lg border alerta-piscar">
+                        <p class="text-sm text-gray-500">Stock Baixo</p>
+                        <p class="text-2xl font-bold text-amber-600" id="resumo-stock-baixo">0</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg border alerta-piscar">
+                        <p class="text-sm text-gray-500">A Vencer</p>
+                        <p class="text-2xl font-bold text-red-600" id="resumo-vencer">0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg border">
+                        <p class="text-sm text-gray-500">Lucro do Dia</p>
+                        <p class="text-2xl font-bold text-green-700" id="resumo-lucro-dia">0 Kz</p>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div class="border rounded-lg p-4 bg-white">
+                        <h3 class="font-bold mb-3">Vendas dos Últimos 7 Dias</h3>
+                        <canvas id="grafico-vendas" height="200"></canvas>
+                    </div>
+                    <div class="border rounded-lg p-4 bg-white">
+                        <h3 class="font-bold mb-3">Distribuição de Stock</h3>
+                        <canvas id="grafico-stock" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="border rounded-lg p-4 bg-amber-50">
+                    <h3 class="font-bold mb-2 flex items-center gap-2 text-amber-800">
+                        <i class="fa fa-exclamation-triangle"></i> Alertas Importantes
+                    </h3>
+                    <div id="lista-alertas" class="text-sm space-y-1">
+                        <p class="text-amber-700">Sem alertas no momento ✅</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 💊 PRODUTOS -->
+            <section id="produtos" class="secao">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+                    <h2 class="text-2xl font-bold">Gestão de Produtos</h2>
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="abrirLeitorCodigo()" class="bg-secondary text-white px-3 py-2 rounded-lg btn flex items-center gap-2">
+                            <i class="fa fa-barcode"></i> Ler Código
+                        </button>
+                        <button onclick="abrirModalProduto()" class="bg-primary text-white px-3 py-2 rounded-lg btn flex items-center gap-2 perm-gestor perm-admin">
+                            <i class="fa fa-plus"></i> Novo Produto
+                        </button>
+                    </div>
+                </div>
+
+                <div id="leitor-codigo" class="hidden mb-4 border rounded-lg p-3 bg-gray-50">
+                    <video id="video-leitor" class="codigo-barras-video" autoplay playsinline muted></video>
+                    <p class="text-sm text-gray-500 mt-2 text-center">Aproxime o código de barras da câmara</p>
+                    <button onclick="pararLeitorCodigo()" class="mt-2 w-full border py-2 rounded-lg btn">Fechar Leitor</button>
+                </div>
+
+                <div class="mb-4">
+                    <input type="text" id="pesquisar-prod" oninput="filtrarProdutos()" placeholder="Pesquisar por nome, lote ou código..." 
+                        class="w-full p-3 border rounded-lg">
+                </div>
+
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b">
+                            <tr>
+                                <th class="text-left p-2">Código</th>
+                                <th class="text-left p-2">Nome</th>
+                                <th class="text-left p-2">Lote</th>
+                                <th class="text-left p-2">Validade</th>
+                                <th class="text-center p-2">Stock</th>
+                                <th class="text-right p-2">Custo</th>
+                                <th class="text-right p-2">Venda</th>
+                                <th class="text-right p-2">Lucro</th>
+                                <th class="text-center p-2">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-produtos">
+                            <tr><td colspan="9" class="p-4 text-center text-gray-500">Carregando dados...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 🛒 PONTO DE VENDA -->
+            <section id="pdv" class="secao">
+                <h2 class="text-2xl font-bold mb-4">Ponto de Venda</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-bold mb-3">Nova Venda</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Produto</label>
+                                <select id="venda-produto" class="w-full p-2 border rounded-lg">
+                                    <option value="">-- Selecione --</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Quantidade</label>
+                                    <input type="number" min="1" value="1" id="venda-qtd" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Preço Unit.</label>
+                                    <input type="text" id="venda-preco" class="w-full p-2 border rounded-lg bg-gray-100" readonly>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Total</label>
+                                <input type="text" id="venda-total" class="w-full p-2 border rounded-lg font-bold text-lg" readonly>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Valor Pago</label>
+                                    <input type="number" min="0" id="venda-pago" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Troco</label>
+                                    <input type="text" id="venda-troco" class="w-full p-2 border rounded-lg bg-gray-100" readonly>
+                                </div>
+                            </div>
+                            <button onclick="registarVenda()" class="w-full bg-pdv text-white py-3 rounded-lg font-bold btn">
+                                <i class="fa fa-check mr-2"></i> Finalizar Venda
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="border rounded-lg p-4 bg-gray-50">
+                        <h3 class="font-bold mb-3">Recibo</h3>
+                        <div id="recibo" class="bg-white p-4 rounded border text-sm min-h-[300px]">
+                            <div class="text-center mb-4">
+                                <h4 class="font-bold text-lg" id="recibo-nome-farmacia">FarmaStock</h4>
+                                <p class="text-xs" id="recibo-endereco">Luanda, Angola</p>
+                                <hr class="my-2">
+                            </div>
+                            <div id="corpo-recibo">
+                                <p class="text-gray-500 text-center">Recibo será gerado após finalizar venda</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 mt-3">
+                            <button onclick="imprimirRecibo()" class="border py-2 rounded-lg btn text-sm">
+                                <i class="fa fa-print"></i> Imprimir
+                            </button>
+                            <button onclick="partilharWhatsApp()" class="bg-green-500 text-white py-2 rounded-lg btn text-sm">
+                                <i class="fa fa-whatsapp"></i> WhatsApp
+                            </button>
+                            <button onclick="partilharSMS()" class="bg-blue-500 text-white py-2 rounded-lg btn text-sm">
+                                <i class="fa fa-comment"></i> SMS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 📄 RELATÓRIOS -->
+            <section id="relatorios" class="secao">
+                <h2 class="text-2xl font-bold mb-4">Relatórios e Exportação</h2>
+                <div class="grid md:grid-cols-2 gap-4 mb-6">
+                    <button onclick="gerarRelatorio('stock')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
+                        <i class="fa fa-cubes text-primary text-xl mr-2"></i> Stock Completo
+                    </button>
+                    <button onclick="gerarRelatorio('vendas')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
+                        <i class="fa fa-shopping-cart text-pdv text-xl mr-2"></i> Histórico de Vendas
+                    </button>
+                    <button onclick="gerarRelatorio('lucro')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
+                        <i class="fa fa-line-chart text-success text-xl mr-2"></i> Lucro e Margem
+                    </button>
+                    <button onclick="gerarRelatorio('validade')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
+                        <i class="fa fa-calendar-times-o text-danger text-xl mr-2"></i> Controlo de Validades
+                    </button>
+                </div>
+
+                <div id="area-relatorio" class="border rounded-lg p-4 bg-gray-50 hidden">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 id="titulo-relatorio" class="font-bold text-lg">Relatório</h3>
+                        <div class="flex gap-2">
+                            <button onclick="exportarPDF()" class="bg-danger text-white px-3 py-1 rounded-lg text-sm btn">
+                                <i class="fa fa-file-pdf-o"></i> PDF
+                            </button>
+                            <button onclick="exportarExcel()" class="bg-green-600 text-white px-3 py-1 rounded-lg text-sm btn">
+                                <i class="fa fa-file-excel-o"></i> Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div id="conteudo-relatorio" class="bg-white p-4 rounded border text-sm max-h-[500px] overflow-auto"></div>
+                </div>
+            </section>
+
+            <!-- 👥 UTILIZADORES -->
+            <section id="utilizadores" class="secao perm-gestor perm-admin">
+                <h2 class="text-2xl font-bold mb-4">Gestão de Utilizadores</h2>
+                <button onclick="abrirModalUtilizador()" class="bg-primary text-white px-3 py-2 rounded-lg btn mb-4">
+                    <i class="fa fa-user-plus mr-2"></i> Novo Utilizador
+                </button>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b">
+                            <tr>
+                                <th class="text-left p-2">Nome</th>
+                                <th class="text-left p-2">Email</th>
+                                <th class="text-left p-2">Função</th>
+                                <th class="text-center p-2">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-utilizadores">
+                            <tr><td colspan="4" class="p-4 text-center text-gray-500">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ⚙️ CONFIGURAÇÕES -->
+            <section id="configuracoes" class="secao perm-admin">
+                <h2 class="text-2xl font-bold mb-4">Definições do Sistema</h2>
+                <div class="border rounded-lg p-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Nome da Farmácia</label>
+                        <input type="text" id="config-nome-farmacia" class="w-full p-2 border rounded-lg" value="FarmaStock">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Localização / Endereço</label>
+                        <input type="text" id="config-endereco" class="w-full p-2 border rounded-lg" value="Luanda, Angola">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Telefone / WhatsApp</label>
+                        <input type="text" id="config-telefone" class="w-full p-2 border rounded-lg">
+                    </div>
+                    <button onclick="salvarConfiguracoes()" class="bg-primary text-white px-4 py-2 rounded-lg btn">
+                        Salvar Definições
+                    </button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- 📝 MODAL: PRODUTO -->
+    <div id="modal-produto" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-4" id="titulo-modal-prod">Novo Produto</h3>
+            <form id="form-produto" class="space-y-3">
+                <input type="hidden" id="prod-id">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Código de Barras</label>
+                    <input type="text" id="prod-codigo" class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nome do Produto *</label>
+                    <input type="text" id="prod-nome" required class="w-full p-2 border rounded-lg">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-sm font-medium mb-1">Lote *</label>
+                        <input type="text" id="prod-lote" required class="w-full p-2 border rounded-lg"></div>
+                    <div><label class="block text-sm font-medium mb-1">Validade *</label>
+                        <input type="date" id="prod-validade" required class="w-full p-2 border rounded-lg"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-sm font-medium mb-1">Stock Atual *</label>
+                        <input type="number" min="0" id="prod-stock" required class="w-full p-2 border rounded-lg"></div>
+                    <div><label class="block text-sm font-medium mb-1">Stock Mínimo *</label>
+                        <input type="number" min="1" id="prod-minimo" value="5" required class="w-full p-2 border rounded-lg"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-sm font-medium mb-1">Preço Compra (Kz) *</label>
+                        <input type="number" step="0.01" min="0" id="prod-custo" required class="w-full p-2 border rounded-lg" oninput="calcularLucroProd()"></div>
+                    <div><label class="block text-sm font-medium mb-1">Preço Venda (Kz) *</label>
+                        <input type="number" step="0.01" min="0" id="prod-venda" required class="w-full p-2 border rounded-lg" oninput="calcularLucroProd()"></div>
+                </div>
+                <div class="bg-gray-50 p-2 rounded-lg">
+                    <p class="text-sm">Lucro Unitário: <span id="prod-lucro" class="font-bold text-green-600">0 Kz</span></p>
+                    <p class="text-xs text-gray-500">Margem: <span id="prod-margem">0%</span></p>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="fecharModal('modal-produto')" class="flex-1 border py-2 rounded-lg btn">Cancelar</button>
+                    <button type="submit" class="flex-1 bg-primary text-white py-2 rounded-lg btn">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 📝 MODAL: UTILIZADOR -->
+    <div id="modal-utilizador" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Novo Utilizador</h3>
+            <form id="form-utilizador" class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nome Completo *</label>
+                    <input type="text" id="user-nome" required class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email *</label>
+                    <input type="email" id="user-email" required class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Senha *</label>
+                    <input type="password" id="user-senha" required class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Função / Permissão *</label>
+                    <select id="user-tipo" required class="w-full p-2 border rounded-lg">
+                        <option value="admin">Administrador — Acesso Total</option>
+                        <option value="gestor">Gestor de Loja — Gestão Completa</option>
+                        <option value="caixa">Operador/Caixa — Apenas Vendas</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="fecharModal('modal-utilizador')" class="flex-1 border py-2 rounded-lg btn">Cancelar</button>
+                    <button type="submit" class="flex-1 bg-primary text-white py-2 rounded-lg btn">Criar Conta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        // ==================================================
+        // 🔴 CONFIGURAÇÃO DO FIREBASE (COLOCA A TUA AQUI) 🔴
+        // ==================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4JPzPRnI2R0vYKDngIc55-D2v_BMUh54",
+            authDomain: "farmastock-fbbd2.firebaseapp.com",
+            projectId: "farmastock-fbbd2",
+            storageBucket: "farmastock-fbbd2.firebasestorage.app",
+            messagingSenderId: "535073309658",
+            appId: "1:535073309658:web:e208aa2389ad8aa95136e3"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Variáveis Globais
+        let utilizadorAtual = null;
+        let tipoUtilizador = '';
+        let leitorCodigo = null;
+        let dadosRelatorio = null;
+        let graficoVendas = null, graficoStock = null;
+        let ultimoReciboTexto = '';
+
+        // Fechar modais genéricos
+        function fecharModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // Controlo de Permissões
+        function aplicarPermissoes(tipo) {
+            tipoUtilizador = tipo;
+            document.querySelectorAll('.perm-admin, .perm-gestor, .perm-caixa').forEach(el => el.classList.add('perm-oculto'));
+            
+            if (tipo === 'admin') {
+                document.querySelectorAll('.perm-admin, .perm-gestor, .perm-caixa').forEach(el => el.classList.remove('perm-oculto'));
+            } else if (tipo === 'gestor') {
+                document.querySelectorAll('.perm-gestor, .perm-caixa').forEach(el => el.classList.remove('perm-oculto'));
+            } else if (tipo === 'caixa') {
+                document.querySelectorAll('.perm-caixa').forEach(el => el.classList.remove('perm-oculto'));
+                ['produtos', 'relatorios', 'utilizadores', 'configuracoes'].forEach(id => {
+                    document.getElementById(`nav-${id}`)?.classList.add('perm-oculto');
+                });
+                abrirSecao('pdv');
+            }
+        }
+
+        // Autenticação
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const senha = document.getElementById('login-senha').value;
+
+            try {
+                const res = await auth.signInWithEmailAndPassword(email, senha);
+                const doc = await db.collection('utilizadores').doc(res.user.uid).get();
+                if (!doc.exists) throw new Error("Utilizador não encontrado na base de dados");
+                
+                utilizadorAtual = { id: res.user.uid, ...doc.data() };
+                tipoUtilizador = utilizadorAtual.tipo;
+
+                document.getElementById('nome-user').textContent = utilizadorAtual.nome.split(' ')[0];
+                document.getElementById('tipo-user').textContent = tipoUtilizador.toUpperCase();
+                aplicarPermissoes(tipoUtilizador);
+
+                document.getElementById('tela-login').classList.add('hidden');
+                document.getElementById('app-principal').classList.remove('hidden');
+
+                await carregarConfiguracoesGerais();
+                await carregarDadosDashboard();
+                await carregarListaProdutos();
+                await carregarListaUtilizadores();
+                inicializarGraficos();
+
+            } catch (erro) {
+                alert("❌ Erro de acesso: " + erro.message);
+            }
+        });
+
+        function logout() {
+            auth.signOut().then(() => {
+                utilizadorAtual = null;
+                document.getElementById('app-principal').classList.add('hidden');
+                document.getElementById('tela-login').classList.remove('hidden');
+            });
+        }
+
+        // Navegação
+        function abrirSecao(id) {
+            if (id === 'utilizadores' && !['admin','gestor'].includes(tipoUtilizador)) return alert("Acesso negado!");
+            if (id === 'configuracoes' && tipoUtilizador !== 'admin') return alert("Acesso negado!");
+            if (id === 'produtos' && tipoUtilizador === 'caixa') return alert("Acesso negado!");
+
+            document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
+            document.getElementById(id).classList.add('ativa');
+        }
+
+        // Definições gerais
+        async function carregarConfiguracoesGerais() {
+            try {
+                const doc = await db.collection('configuracoes').doc('geral').get();
+                if (doc.exists) {
+                    const c = doc.data();
+                    document.getElementById('config-nome-farmacia').value = c.nome || 'FarmaStock';
+                    document.getElementById('config-endereco').value = c.endereco || 'Luanda, Angola';
+                    document.getElementById('config-telefone').value = c.telefone || '';
+                    document.getElementById('app-titulo-topo').textContent = c.nome || 'FarmaStock';
+                    document.getElementById('recibo-nome-farmacia').textContent = c.nome || 'FarmaStock';
+                    document.getElementById('recibo-endereco').textContent = `${c.endereco || 'Luanda'} • Tel: ${c.telefone || '---'}`;
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function salvarConfiguracoes() {
+            if (tipoUtilizador !== 'admin') return alert("Apenas administradores podem alterar definições!");
+            const dados = {
+                nome: document.getElementById('config-nome-farmacia').value.trim(),
+                endereco: document.getElementById('config-endereco').value.trim(),
+                telefone: document.getElementById('config-telefone').value.trim()
+            };
+            await db.collection('configuracoes').doc('geral').set(dados);
+            await carregarConfiguracoesGerais();
+            alert("✅ Definições salvas com sucesso!");
+        }
+
+        // Leitor de Código de Barras (Corrigido para telemóveis)
+        async function abrirLeitorCodigo() {
+            document.getElementById('leitor-codigo').classList.remove('hidden');
+            try {
+                leitorCodigo = new ZXing.BrowserMultiFormatReader();
+                const videoInputDevices = await leitorCodigo.listVideoInputDevices();
+                let selectedDeviceId = null;
+                
+                if (videoInputDevices.length > 0) {
+                    const traseira = videoInputDevices.find(device => 
+                        device.label.toLowerCase().includes('back') || 
+                        device.label.toLowerCase().includes('traseira') || 
+                        device.label.toLowerCase().includes('rear') ||
+                        device.label.toLowerCase().includes('environment')
+                    );
+                    selectedDeviceId = traseira ? traseira.deviceId : videoInputDevices[videoInputDevices.length - 1].deviceId;
+                }
+
+                await leitorCodigo.decodeFromVideoDevice(selectedDeviceId, 'video-leitor', (res) => {
+                    if (res) {
+                        document.getElementById('prod-codigo').value = res.text;
+                        pararLeitorCodigo();
+                        pesquisarProdutoPorCodigo(res.text);
+                    }
+                });
+            } catch (e) {
+                alert("❌ Erro ao aceder à câmara. Certifique-se de que permitiu o uso da câmara no navegador: " + e.message);
+            }
+        }
+
+        function pararLeitorCodigo() {
+            if (leitorCodigo) leitorCodigo.reset();
+            document.getElementById('leitor-codigo').classList.add('hidden');
+        }
+
+        async function pesquisarProdutoPorCodigo(codigo) {
+            const snap = await db.collection('produtos').where('codigo', '==', codigo).get();
+            if (!snap.empty) {
+                const doc = snap.docs[0];
+                abrirModalProduto(doc.id, doc.data());
+            }
+        }
+
+        // Cálculos de Produtos
+        function calcularLucroProd() {
+            const custo = parseFloat(document.getElementById('prod-custo').value) || 0;
+            const venda = parseFloat(document.getElementById('prod-venda').value) || 0;
+            const lucro = venda - custo;
+            const margem = custo > 0 ? ((lucro / custo) * 100).toFixed(1) : 0;
+            document.getElementById('prod-lucro').textContent = `${lucro.toFixed(2)} Kz`;
+            document.getElementById('prod-margem').textContent = `${margem}%`;
+        }
+
+        // Dashboard e Gráficos
+        async function carregarDadosDashboard() {
+            const produtosSnap = await db.collection('produtos').get();
+            const totalProd = produtosSnap.size;
+            let stockBaixo = 0, vencer = 0;
+            const hoje = new Date();
+
+            produtosSnap.forEach(doc => {
+                const p = doc.data();
+                if (p.stock <= p.minimo) stockBaixo++;
+                const dias = Math.ceil((new Date(p.validade) - hoje) / (1000*60*60*24));
+                if (dias >= 0 && dias <= 30) vencer++;
+            });
+
+            document.getElementById('resumo-total-prod').textContent = totalProd;
+            document.getElementById('resumo-stock-baixo').textContent = stockBaixo;
+            document.getElementById('resumo-vencer').textContent = vencer;
+
+            const hojeStr = hoje.toISOString().split('T')[0];
+            const vendasSnap = await db.collection('vendas').where('data', '>=', hojeStr).get();
+            const lucroDia = vendasSnap.docs.reduce((sum, d) => sum + (d.data().lucro || 0), 0);
+            document.getElementById('resumo-lucro-dia').textContent = lucroDia.toFixed(2) + ' Kz';
+
+            const alertas = [];
+            if (stockBaixo > 0) alertas.push(`⚠️ ${stockBaixo} produtos com stock baixo!`);
+            if (vencer > 0) alertas.push(`⚠️ ${vencer} produtos próximos do vencimento!`);
+            document.getElementById('lista-alertas').innerHTML = alertas.length ? alertas.map(a=>`<p>${a}</p>`).join('') : '<p>Sem alertas ✅</p>';
+        }
+
+        function inicializarGraficos() {
+            if (graficoVendas) graficoVendas.destroy();
+            if (graficoStock) graficoStock.destroy();
+
+            const ctx1 = document.getElementById('grafico-vendas').getContext('2d');
+            graficoVendas = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],
+                    datasets: [{ label: 'Vendas (Kz)', data: [0,0,0,0,0,0,0], borderColor: '#0F766E', tension: 0.3, fill:true, backgroundColor:'rgba(15,118,110,0.1)'}]
+                },
+                options: { responsive:true, plugins:{legend:{display:false}} }
+            });
+
+            const ctx2 = document.getElementById('grafico-stock').getContext('2d');
+            graficoStock = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Disponível', 'Baixo', 'Esgotado'],
+                    datasets: [{ data: [70,20,10], backgroundColor:['#16A34A','#F59E0B','#DC2626'] }]
+                },
+                options: { responsive:true }
+            });
+        }
+
+        // Gestão de Produtos
+        async function carregarListaProdutos() {
+            const snap = await db.collection('produtos').orderBy('nome').get();
+            preencherTabelaProdutos(snap.docs);
+            atualizarSelectVendas(snap.docs);
+        }
+
+        function preencherTabelaProdutos(docs) {
+            const tbody = document.getElementById('tabela-produtos');
+            if (docs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-gray-500">Sem produtos registados</td></tr>';
+                return;
+            }
+            tbody.innerHTML = docs.map(doc => {
+                const p = doc.data();
+                const lucro = (p.venda || 0) - (p.custo || 0);
+                const alerta = p.stock <= p.minimo ? 'text-red-600 font-bold' : '';
+                return `
+                <tr class="border-b">
+                    <td class="p-2 text-xs">${p.codigo || '—'}</td>
+                    <td class="p-2">${p.nome}</td>
+                    <td class="p-2">${p.lote}</td>
+                    <td class="p-2">${p.validade}</td>
+                    <td class="p-2 text-center ${alerta}">${p.stock}</td>
+                    <td class="p-2 text-right">${(p.custo||0).toFixed(2)} Kz</td>
+                    <td class="p-2 text-right">${(p.venda||0).toFixed(2)} Kz</td>
+                    <td class="p-2 text-right text-green-600">${lucro.toFixed(2)} Kz</td>
+                    <td class="p-2 text-center">
+                        <button onclick="abrirModalProduto('${doc.id}')" class="text-blue-500 mr-2"><i class="fa fa-pencil"></i></button>
+                        <button onclick="apagarProduto('${doc.id}')" class="text-red-500"><i class="fa fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function atualizarSelectVendas(docs) {
+            const sel = document.getElementById('venda-produto');
+            sel.innerHTML = '<option value="">-- Selecione --</option>';
+            docs.forEach(doc => {
+                const p = doc.data();
+                if (p.stock > 0) {
+                    const opt = document.createElement('option');
+                    opt.value = doc.id;
+                    opt.textContent = `${p.nome} — ${p.stock} disponíveis (${p.venda} Kz)`;
+                    sel.appendChild(opt);
+                }
+            });
+        }
+
+        function filtrarProdutos() {
+            const termo = document.getElementById('pesquisar-prod').value.toLowerCase();
+            db.collection('produtos').get().then(snap => {
+                const filtrados = snap.docs.filter(d => {
+                    const p = d.data();
+                    return p.nome.toLowerCase().includes(termo) || p.lote.toLowerCase().includes(termo) || (p.codigo && p.codigo.toLowerCase().includes(termo));
+                });
+                preencherTabelaProdutos(filtrados);
+            });
+        }
+
+        function abrirModalProduto(id=null, dados=null) {
+            document.getElementById('modal-produto').classList.remove('hidden');
+            document.getElementById('form-produto').reset();
+            document.getElementById('prod-id').value = id || '';
+            document.getElementById('titulo-modal-prod').textContent = id ? 'Editar Produto' : 'Novo Produto';
+            if (dados) {
+                Object.keys(dados).forEach(k => {
+                    const el = document.getElementById(`prod-${k}`);
+                    if(el) el.value = dados[k];
+                });
+                calcularLucroProd();
+            }
+        }
+
+        document.getElementById('form-produto').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value;
+            const dados = {
+                codigo: document.getElementById('prod-codigo').value.trim(),
+                nome: document.getElementById('prod-nome').value.trim(),
+                lote: document.getElementById('prod-lote').value.trim(),
+                validade: document.getElementById('prod-validade').value,
+                stock: parseInt(document.getElementById('prod-stock').value),
+                minimo: parseInt(document.getElementById('prod-minimo').value),
+                custo: parseFloat(document.getElementById('prod-custo').value),
+                venda: parseFloat(document.getElementById('prod-venda').value),
+                atualizadoEm: new Date().toISOString()
+            };
+
+            try {
+                if (id) await db.collection('produtos').doc(id).update(dados);
+                else await db.collection('produtos').add({...dados, criadoEm: new Date().toISOString()});
+                
+                fecharModal('modal-produto');
+                await carregarListaProdutos();
+                await carregarDadosDashboard();
+                alert("✅ Produto salvo com sucesso!");
+            } catch (erro) {
+                alert("❌ Erro: " + erro.message);
+            }
+        });
+
+        async function apagarProduto(id) {
+            if (!confirm("Tem certeza que deseja apagar este produto?")) return;
+            await db.collection('produtos').doc(id).delete();
+            await carregarListaProdutos();
+            await carregarDadosDashboard();
+        }
+
+        // Vendas e Recibo
+        document.getElementById('venda-produto').addEventListener('change', async () => {
+            const id = document.getElementById('venda-produto').value;
+            if (!id) return;
+            const doc = await db.collection('produtos').doc(id).get();
+            const p = doc.data();
+            document.getElementById('venda-preco').value = p.venda.toFixed(2) + ' Kz';
+            atualizarTotalVenda();
+        });
+        document.getElementById('venda-qtd').addEventListener('input', atualizarTotalVenda);
+        document.getElementById('venda-pago').addEventListener('input', atualizarTroco);
+
+        function atualizarTotalVenda() {
+            const preco = parseFloat(document.getElementById('venda-preco').value) || 0;
+            const qtd = parseInt(document.getElementById('venda-qtd').value) || 0;
+            document.getElementById('venda-total').value = (preco * qtd).toFixed(2) + ' Kz';
+            atualizarTroco();
+        }
+
+        function atualizarTroco() {
+            const total = parseFloat(document.getElementById('venda-total').value) || 0;
+            const pago = parseFloat(document.getElementById('venda-pago').value) || 0;
+            document.getElementById('venda-troco').value = Math.max(0, pago - total).toFixed(2) + ' Kz';
+        }
+
+        async function registarVenda() {
+            const prodId = document.getElementById('venda-produto').value;
+            const qtd = parseInt(document.getElementById('venda-qtd').value);
+            const pago = parseFloat(document.getElementById('venda-pago').value) || 0;
+            if (!prodId || qtd < 1) return alert("Selecione um produto e quantidade válida!");
+
+            const prodRef = db.collection('produtos').doc(prodId);
+            const prodDoc = await prodRef.get();
+            const prod = prodDoc.data();
+
+            if (qtd > prod.stock) return alert("❌ Stock insuficiente! Disponível: " + prod.stock);
+
+            const totalVenda = prod.venda * qtd;
+            if (pago < totalVenda) return alert("❌ O valor pago é inferior ao total da venda!");
+
+            const venda = {
+                produtoId: prodId,
+                produtoNome: prod.nome,
+                quantidade: qtd,
+                precoUnit: prod.venda,
+                custoUnit: prod.custo,
+                total: totalVenda,
+                lucro: (prod.venda - prod.custo) * qtd,
+                data: new Date().toISOString(),
+                operador: utilizadorAtual.nome
+            };
+
+            await db.collection('vendas').add(venda);
+            await prodRef.update({ stock: prod.stock - qtd });
+
+            const numRecibo = Date.now().toString().slice(-6);
+            const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
+
+            ultimoReciboTexto = `📄 RECIBO #${numRecibo}\n*${farmaciaNome}*\n------------------\nProd: ${prod.nome}\nQtd: ${qtd}x\nTotal: ${totalVenda.toFixed(2)} Kz\nTroco: ${(pago - totalVenda).toFixed(2)} Kz\nOperador: ${utilizadorAtual.nome}\nData: ${new Date().toLocaleString()}\n------------------\nObrigado pela preferência!`;
+
+            document.getElementById('corpo-recibo').innerHTML = `
+                <p><strong>Recibo:</strong> #${numRecibo}</p>
+                <p><strong>Produto:</strong> ${prod.nome}</p>
+                <p><strong>Qtd:</strong> ${qtd}</p>
+                <p><strong>Total:</strong> ${totalVenda.toFixed(2)} Kz</p>
+                <p><strong>Pago:</strong> ${pago.toFixed(2)} Kz</p>
+                <p><strong>Troco:</strong> ${(pago - totalVenda).toFixed(2)} Kz</p>
+                <p class="text-xs text-gray-500 mt-2">Op: ${utilizadorAtual.nome}</p>
+            `;
+
+            await carregarListaProdutos();
+            await carregarDadosDashboard();
+            alert("✅ Venda finalizada com sucesso!");
+        }
+
+        function imprimirRecibo() {
+            if (!ultimoReciboTexto) return alert("Nenhum recibo gerado ainda!");
+            const janela = window.open('', '', 'width=400,height=600');
+            janela.document.write(`<pre style="font-family:monospace;">${document.getElementById('corpo-recibo').innerHTML}</pre>`);
+            janela.document.close();
+            janela.print();
+        }
+
+        function partilharWhatsApp() {
+            if (!ultimoReciboTexto) return alert("Nenhum recibo gerado ainda!");
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(ultimoReciboTexto)}`, '_blank');
+        }
+
+        function partilharSMS() {
+            if (!ultimoReciboTexto) return alert("Nenhum recibo gerado ainda!");
+            window.open(`sms:?body=${encodeURIComponent(ultimoReciboTexto)}`, '_blank');
+        }
+
+        // Relatórios e Exportação
+        async function gerarRelatorio(tipo) {
+            const area = document.getElementById('area-relatorio');
+            const titulo = document.getElementById('titulo-relatorio');
+            const conteudo = document.getElementById('conteudo-relatorio');
+            area.classList.remove('hidden');
+
+            if (tipo === 'stock') {
+                titulo.textContent = 'Relatório de Stock Completo';
+                const snap = await db.collection('produtos').orderBy('nome').get();
+                dadosRelatorio = snap.docs.map(d => d.data());
+                conteudo.innerHTML = `<table class="w-full text-xs"><tr><th>Nome</th><th>Lote</th><th>Stock</th><th>Preço Venda</th></tr>` +
+                    dadosRelatorio.map(p => `<tr><td>${p.nome}</td><td>${p.lote}</td><td>${p.stock}</td><td>${p.venda} Kz</td></tr>`).join('') + `</table>`;
+            } else if (tipo === 'vendas') {
+                titulo.textContent = 'Histórico de Vendas';
+                const snap = await db.collection('vendas').orderBy('data', 'desc').get();
+                dadosRelatorio = snap.docs.map(d => d.data());
+                conteudo.innerHTML = `<table class="w-full text-xs"><tr><th>Data</th><th>Produto</th><th>Qtd</th><th>Total</th></tr>` +
+                    dadosRelatorio.map(v => `<tr><td>${new Date(v.data).toLocaleDateString()}</td><td>${v.produtoNome}</td><td>${v.quantidade}</td><td>${v.total} Kz</td></tr>`).join('') + `</table>`;
+            } else if (tipo === 'lucro') {
+                titulo.textContent = 'Relatório de Lucro e Margem';
+                const snap = await db.collection('vendas').get();
+                dadosRelatorio = snap.docs.map(d => d.data());
+                const totalLucro = dadosRelatorio.reduce((acc, v) => acc + (v.lucro || 0), 0);
+                conteudo.innerHTML = `<p class="font-bold text-base mb-3">Lucro Acumulado Total: <span class="text-green-600">${totalLucro.toFixed(2)} Kz</span></p>`;
+            } else if (tipo === 'validade') {
+                titulo.textContent = 'Controlo de Validades';
+                const snap = await db.collection('produtos').get();
+                const hoje = new Date();
+                dadosRelatorio = snap.docs.map(d => d.data()).filter(p => {
+                    const dias = Math.ceil((new Date(p.validade) - hoje)/(1000*60*60*24));
+                    return dias <= 30;
+                });
+                conteudo.innerHTML = `<table class="w-full text-xs"><tr><th>Produto</th><th>Lote</th><th>Validade</th></tr>` +
+                    dadosRelatorio.map(p => `<tr><td>${p.nome}</td><td>${p.lote}</td><td class="text-red-600 font-bold">${p.validade}</td></tr>`).join('') + `</table>`;
+            }
+        }
+
+        function exportarPDF() {
+            if (!dadosRelatorio || dadosRelatorio.length === 0) return alert("Sem dados para exportar!");
+            const docDefinition = {
+                content: [
+                    { text: 'FarmaStock — Relatório', fontSize: 18, bold: true, margin: [0, 0, 0, 10] },
+                    { text: JSON.stringify(dadosRelatorio, null, 2) }
+                ]
+            };
+            pdfMake.createPdf(docDefinition).download('relatorio-farmastock.pdf');
+        }
+
+        function exportarExcel() {
+            if (!dadosRelatorio || dadosRelatorio.length === 0) return alert("Sem dados para exportar!");
+            const worksheet = XLSX.utils.json_to_sheet(dadosRelatorio);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Relatorio");
+            XLSX.writeFile(workbook, "relatorio-farmastock.xlsx");
+        }
+
+        // Gestão de Utilizadores
+        async function carregarListaUtilizadores() {
+            if (!['admin','gestor'].includes(tipoUtilizador)) return;
+            const snap = await db.collection('utilizadores').get();
+            const tbody = document.getElementById('tabela-utilizadores');
+            if (snap.empty) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">Sem utilizadores</td></tr>';
+                return;
+            }
+            tbody.innerHTML = snap.docs.map(doc => {
+                const u = doc.data();
+                return `
+                <tr class="border-b">
+                    <td class="p-2">${u.nome}</td>
+                    <td class="p-2">${u.email}</td>
+                    <td class="p-2 uppercase font-bold text-xs">${u.tipo}</td>
+                    <td class="p-2 text-center">
+                        <button onclick="apagarUtilizador('${doc.id}')" class="text-red-500"><i class="fa fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function abrirModalUtilizador() {
+            document.getElementById('modal-utilizador').classList.remove('hidden');
+            document.getElementById('form-utilizador').reset();
+        }
+
+        document.getElementById('form-utilizador').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nome = document.getElementById('user-nome').value.trim();
+            const email = document.getElementById('user-email').value.trim();
+            const senha = document.getElementById('user-senha').value;
+            const tipo = document.getElementById('user-tipo').value;
+
+            try {
+                const cred = await firebase.auth().createUserWithEmailAndPassword(email, senha);
+                await db.collection('utilizadores').doc(cred.user.uid).set({ nome, email, tipo, criadoEm: new Date().toISOString() });
+                fecharModal('modal-utilizador');
+                await carregarListaUtilizadores();
+                alert("✅ Utilizador criado com sucesso!");
+            } catch (erro) {
+                alert("❌ Erro ao criar utilizador: " + erro.message);
+            }
+        });
+
+        async function apagarUtilizador(id) {
+            if (!confirm("Tem certeza que deseja remover este utilizador?")) return;
+            await db.collection('utilizadores').doc(id).delete();
+            await carregarListaUtilizadores();
+        }
+    </script>
+</body>
+</html>
