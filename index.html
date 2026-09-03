@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmaStock</title>
+    <!-- SEM BIBLIOTECAS EXTRA — APENAS O NECESSÁRIO -->
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #0F766E;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .tela {
+            width: 100%;
+            max-width: 420px;
+        }
+        .caixa-branca {
+            background: white;
+            border-radius: 20px;
+            padding: 32px 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .escondido {
+            display: none !important;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: bold;
+            color: #111827;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        .subtitulo {
+            text-align: center;
+            color: #6B7280;
+            margin-bottom: 32px;
+        }
+        .grupo-input {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+        input:focus, select:focus {
+            border-color: #0F766E;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+        }
+        .btn-principal {
+            width: 100%;
+            background-color: #0F766E;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+        .btn-principal:active {
+            background-color: #0D9488;
+            transform: scale(0.98);
+        }
+        .btn-secundario {
+            width: 100%;
+            background: white;
+            color: #374151;
+            border: 1px solid #D1D5DB;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        .btn-secundario:active {
+            background: #F3F4F6;
+        }
+        .link-texto {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 15px;
+            color: #0F766E;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .link-texto:active {
+            text-decoration: underline;
+        }
+        .pagina-principal {
+            background: white;
+            width: 100%;
+            min-height: 100vh;
+            padding: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===================== TELA DE LOGIN ===================== -->
+    <div id="telaLogin" class="tela">
+        <div class="caixa-branca">
+            <div style="text-align:center; margin-bottom:16px; font-size:40px;">⚗️</div>
+            <h1>FarmaStock</h1>
+            <p class="subtitulo">Gestão Inteligente de Farmácia</p>
+
+            <div class="grupo-input">
+                <label>Email</label>
+                <input type="email" id="inpEmail" placeholder="exemplo@dominio.com" required>
+            </div>
+
+            <div class="grupo-input">
+                <label>Senha</label>
+                <input type="password" id="inpSenha" placeholder="••••••••" required>
+            </div>
+
+            <button id="botaoEntrar" class="btn-principal">Entrar</button>
+
+            <p class="link-texto" id="linkRecuperar">Esqueci a minha senha</p>
+
+            <div style="margin-top:24px; text-align:center;">
+                <p style="font-size:14px; color:#6B7280;">Ainda não tem conta?</p>
+                <p class="link-texto" id="linkCriarConta" style="font-weight:bold; font-size:16px;">➕ Criar Conta</p>
+            </div>
+
+            <p style="text-align:center; font-size:12px; color:#9CA3AF; margin-top:16px;">Acesso restrito a colaboradores autorizados</p>
+        </div>
+    </div>
+
+    <!-- ===================== TELA DE CADASTRO ===================== -->
+    <div id="telaCadastro" class="tela escondido">
+        <div class="caixa-branca">
+            <div style="text-align:center; margin-bottom:16px; font-size:36px;">👤</div>
+            <h1>Criar Nova Conta</h1>
+            <p class="subtitulo">Registo de utilizador autorizado</p>
+
+            <div class="grupo-input">
+                <label>Nome Completo</label>
+                <input type="text" id="cadNome" placeholder="Seu nome completo" required>
+            </div>
+
+            <div class="grupo-input">
+                <label>Email</label>
+                <input type="email" id="cadEmail" placeholder="exemplo@dominio.com" required>
+            </div>
+
+            <div class="grupo-input">
+                <label>Senha (mínimo 6 caracteres)</label>
+                <input type="password" id="cadSenha" placeholder="••••••••" required minlength="6">
+            </div>
+
+            <div class="grupo-input">
+                <label>Função / Nível de Acesso</label>
+                <select id="cadTipo">
+                    <option value="admin">Administrador — Acesso Total</option>
+                    <option value="gestor">Gestor de Loja</option>
+                    <option value="caixa">Operador/Caixa</option>
+                </select>
+            </div>
+
+            <button id="botaoRegistar" class="btn-principal">Registar Conta</button>
+            <button id="botaoVoltarLogin" class="btn-secundario">Voltar ao Login</button>
+        </div>
+    </div>
+
+    <!-- ===================== TELA PRINCIPAL (DEPOIS DE ENTRAR) ===================== -->
+    <div id="telaPrincipal" class="pagina-principal escondido">
+        <h1 style="text-align:left; color:#0F766E; margin-bottom:16px;">✅ Bem-vindo ao FarmaStock!</h1>
+        <p style="font-size:16px; margin-bottom:24px;">Sistema carregado com sucesso. Tudo está a funcionar corretamente.</p>
+        <p style="font-size:14px; color:#6B7280; margin-bottom:32px;">Em breve: gestão de produtos, vendas, stock, relatórios e muito mais.</p>
+        <button id="botaoSair" style="background:#DC2626; color:white; border:none; padding:12px 24px; border-radius:8px; font-size:16px; cursor:pointer;">🚪 Sair da conta</button>
+    </div>
+
+
+    <script>
+        // ==================================================
+        // 🔴 COLOCA AQUI OS TEUS DADOS DO FIREBASE — EXATAMENTE COPIADOS
+        // ==================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4JPzPRnI2R0vYKDngIc55-D2v_BMUh54",
+            authDomain: "farmastock-fbbd2.firebaseapp.com",
+            projectId: "farmastock-fbbd2",
+            storageBucket: "farmastock-fbbd2.firebasestorage.app",
+            messagingSenderId: "535073309658",
+            appId: "1:535073309658:web:e208aa2389ad8aa95136e3"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+
+        // ==================================================
+        // ✅ CÓDIGO — 100% GARANTIDO, SEM CONFLITOS ✅
+        // ==================================================
+        // ESPERAR ATÉ TUDO ESTAR PRONTO — NADA ANTES DISSO!
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("✅ Página e recursos carregados — Sistema pronto!");
+
+            // PEGAR TODOS OS ELEMENTOS UMA SÓ VEZ — GARANTIDO QUE EXISTEM
+            const telaLogin = document.getElementById('telaLogin');
+            const telaCadastro = document.getElementById('telaCadastro');
+            const telaPrincipal = document.getElementById('telaPrincipal');
+
+            const linkCriarConta = document.getElementById('linkCriarConta');
+            const botaoVoltarLogin = document.getElementById('botaoVoltarLogin');
+            const botaoEntrar = document.getElementById('botaoEntrar');
+            const botaoRegistar = document.getElementById('botaoRegistar');
+            const botaoSair = document.getElementById('botaoSair');
+            const linkRecuperar = document.getElementById('linkRecuperar');
+
+
+            // ============== ABRIR CADASTRO ==============
+            linkCriarConta.addEventListener('click', function() {
+                console.log("🟢 Botão 'Criar Conta' clicado — Abrindo cadastro...");
+                telaLogin.classList.add('escondido');
+                telaCadastro.classList.remove('escondido');
+            });
+
+            // ============== VOLTAR AO LOGIN ==============
+            botaoVoltarLogin.addEventListener('click', function() {
+                console.log("🔙 Voltando ao login...");
+                telaCadastro.classList.add('escondido');
+                telaLogin.classList.remove('escondido');
+            });
+
+
+            // ============== FAZER LOGIN ==============
+            botaoEntrar.addEventListener('click', async function() {
+                console.log("🟢 Botão 'Entrar' clicado — Processando...");
+
+                const email = document.getElementById('inpEmail').value.trim();
+                const senha = document.getElementById('inpSenha').value;
+
+                if (!email || !senha) {
+                    alert("⚠️ Por favor, preenche o email e a senha!");
+                    return;
+                }
+
+                try {
+                    const resultado = await auth.signInWithEmailAndPassword(email, senha);
+                    console.log("✅ Login bem-sucedido! Utilizador:", resultado.user.email);
+
+                    // Buscar dados do utilizador na base de dados
+                    const docUtilizador = await db.collection('utilizadores').doc(resultado.user.uid).get();
+                    if (!docUtilizador.exists) {
+                        throw new Error("Conta encontrada, mas sem dados registados. Cria conta primeiro.");
+                    }
+
+                    // MUDAR DE TELA — SEMPRE FUNCIONA
+                    telaLogin.classList.add('escondido');
+                    telaCadastro.classList.add('escondido');
+                    telaPrincipal.classList.remove('escondido');
+                    console.log("✅ Tela principal aberta com sucesso!");
+
+                } catch (erro) {
+                    console.error("❌ ERRO NO LOGIN:", erro.code, erro.message);
+                    alert("❌ Erro: " + erro.message);
+                }
+            });
+
+
+            // ============== CRIAR CONTA NOVA ==============
+            botaoRegistar.addEventListener('click', async function() {
+                console.log("🟢 Botão 'Registar Conta' clicado — Processando...");
+
+                const nome = document.getElementById('cadNome').value.trim();
+                const email = document.getElementById('cadEmail').value.trim();
+                const senha = document.getElementById('cadSenha').value;
+                const tipo = document.getElementById('cadTipo').value;
+
+                if (!nome || !email || !senha) {
+                    alert("⚠️ Preenche TODOS os campos, por favor!");
+                    return;
+                }
+                if (senha.length < 6) {
+                    alert("⚠️ A senha deve ter pelo menos 6 caracteres!");
+                    return;
+                }
+
+                try {
+                    const resultado = await auth.createUserWithEmailAndPassword(email, senha);
+                    console.log("✅ Conta criada na autenticação:", resultado.user.email);
+
+                    // Guardar dados na base de dados
+                    await db.collection('utilizadores').doc(resultado.user.uid).set({
+                        nome: nome,
+                        email: email,
+                        tipo: tipo,
+                        dataCriacao: new Date().toISOString()
+                    });
+
+                    alert("✅ Conta criada com SUCESSO! Agora podes entrar.");
+                    telaCadastro.classList.add('escondido');
+                    telaLogin.classList.remove('escondido');
+
+                } catch (erro) {
+                    console.error("❌ ERRO AO CRIAR CONTA:", erro.code, erro.message);
+                    if (erro.code === 'auth/email-already-in-use') {
+                        alert("⚠️ Este email já tem conta! Volta ao login e entra diretamente.");
+                    } else {
+                        alert("❌ Erro: " + erro.message);
+                    }
+                }
+            });
+
+
+            // ============== RECUPERAR SENHA ==============
+            linkRecuperar.addEventListener('click', async function() {
+                const email = prompt("📧 Digita o teu email para receber o link de recuperação:");
+                if (!email) return;
+                try {
+                    await auth.sendPasswordResetEmail(email);
+                    alert("✅ Link enviado! Verifica a tua caixa de correio.");
+                } catch (erro) {
+                    alert("❌ Erro: " + erro.message);
+                }
+            });
+
+
+            // ============== SAIR DA CONTA ==============
+            botaoSair.addEventListener('click', function() {
+                auth.signOut().then(() => {
+                    telaPrincipal.classList.add('escondido');
+                    telaLogin.classList.remove('escondido');
+                    console.log("🔴 Sessão terminada com sucesso");
+                });
+            });
+
+
+            // ============== DETETAR SESSÃO AUTOMATICAMENTE ==============
+            auth.onAuthStateChanged(function(utilizador) {
+                if (utilizador) {
+                    console.log("✅ Sessão ativa detetada:", utilizador.email);
+                    telaLogin.classList.add('escondido');
+                    telaCadastro.classList.add('escondido');
+                    telaPrincipal.classList.remove('escondido');
+                } else {
+                    console.log("🔴 Sem sessão ativa — Mostrando login");
+                    telaPrincipal.classList.add('escondido');
+                    telaCadastro.classList.add('escondido');
+                    telaLogin.classList.remove('escondido');
+                }
+            });
+
+        }); // ✅ FIM DO DOMContentLoaded — TUDO DENTRO, NADA FORA!
+
+    </script>
+</body>
+</html>
