@@ -1,7 +1,8 @@
 {
-  "name": "myFriens",
-  "short_name": "myFriens",
-  "start_url": "/",
+  "name": "FarmaStock",
+  "short_name": "FarmaStock",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#075e54",
   "theme_color": "#075e54",
