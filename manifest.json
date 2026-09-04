@@ -1,0 +1,15 @@
+{
+  "name": "FarmaStock — Gestão de Farmácia",
+  "short_name": "FarmaStock",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F9FAFB",
+  "theme_color": "#0F766E",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/fonts/fontawesome-webfont.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
