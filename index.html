@@ -78,6 +78,11 @@
                 <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-secondary btn">
                     <i class="fa fa-sign-in mr-2"></i> Entrar
                 </button>
+                  <!-- Links de Criar Conta e Recuperar Senha -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 14px;">
+                    <a href="#" onclick="mostrarCriarConta(); return false;" style="color: #075e54; text-decoration: none; font-weight: 600;">Criar Conta</a>
+                    <a href="#" onclick="mostrarRecuperarSenha(); return false;" style="color: #666666; text-decoration: none;">Esqueceu a senha?</a>
+                </div>
             </form>
             <p class="text-center text-sm text-gray-500 mt-4">
                 Acesso restrito a colaboradores autorizados
@@ -484,6 +489,23 @@
         let dadosRelatorio = null;
         let graficoVendas = null, graficoStock = null;
         let ultimoReciboTexto = '';
+
+        // Funções para Criar Conta e Recuperar Senha (Login)
+        function mostrarCriarConta() {
+            alert("ℹ️ O registo direto está restrito. Por favor, solicite a criação de conta a um Administrador ou utilize a área de Utilizadores dentro do sistema.");
+        }
+
+        async function mostrarRecuperarSenha() {
+            const emailInput = prompt("Introduza o seu email para recuperar a senha:");
+            if (!emailInput || !emailInput.trim()) return;
+
+            try {
+                await auth.sendPasswordResetEmail(emailInput.trim());
+                alert("✅ Email de recuperação enviado com sucesso! Verifique a sua caixa de entrada (e spam).");
+            } catch (erro) {
+                alert("❌ Erro ao enviar email de recuperação: " + erro.message);
+            }
+        }
 
         // Observador de Sessão
         auth.onAuthStateChanged(async (user) => {
