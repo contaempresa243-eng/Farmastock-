@@ -58,7 +58,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
 
-    <!-- ============== TELA DE LOGIN (Inicia oculta 'hidden' para evitar o piscar) ============== -->
+    <!-- ============== TELA DE LOGIN ============== -->
     <div id="tela-login" class="fixed inset-0 bg-gradient-to-br from-primary to-secondary flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
             <div class="text-center mb-6">
@@ -78,7 +78,6 @@
                 <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-bold hover:bg-secondary btn">
                     <i class="fa fa-sign-in mr-2"></i> Entrar
                 </button>
-                  <!-- Links de Criar Conta e Recuperar Senha -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 14px;">
                     <a href="#" onclick="mostrarCriarConta(); return false;" style="color: #075e54; text-decoration: none; font-weight: 600;">Criar Conta</a>
                     <a href="#" onclick="mostrarRecuperarSenha(); return false;" style="color: #666666; text-decoration: none;">Esqueceu a senha?</a>
@@ -540,9 +539,68 @@
                 await carregarListaUtilizadores();
                 inicializarGraficos();
 
+                // Executar verificação de backup automático (apenas para Admin)
+                if (tipoUtilizador === 'admin') {
+                    await verificarEExecutarBackup();
+                }
+
             } catch (erro) {
                 console.error("Erro ao carregar dados:", erro);
                 auth.signOut();
+            }
+        }
+
+        // ==========================================
+        // 💾 FUNÇÕES DE BACKUP AUTOMÁTICO
+        // ==========================================
+        async function verificarEExecutarBackup() {
+            const ULTIMO_BACKUP_KEY = 'farmaStock_ultimo_backup';
+            const DIAS_INTERVALO = 7; // Intervalo de 7 dias
+            
+            const agora = new Date().getTime();
+            const ultimoBackup = localStorage.getItem(ULTIMO_BACKUP_KEY);
+            const intervaloMs = DIAS_INTERVALO * 24 * 60 * 60 * 1000;
+            
+            if (!ultimoBackup || (agora - parseInt(ultimoBackup)) > intervaloMs) {
+                console.log("A iniciar backup automático...");
+                await fazerBackupParaTelemovel();
+                localStorage.setItem(ULTIMO_BACKUP_KEY, agora.toString());
+            }
+        }
+
+        async function fazerBackupParaTelemovel() {
+            try {
+                const backupData = {
+                    dataBackup: new Date().toISOString(),
+                    sistema: "FarmaStock",
+                    colecoes: {}
+                };
+                
+                const nomesColecoes = ['produtos', 'vendas', 'utilizadores'];
+                
+                for (let colName of nomesColecoes) {
+                    const snapshot = await db.collection(colName).get();
+                    backupData.colecoes[colName] = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                }
+                
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                
+                const dataAtual = new Date().toISOString().split('T')[0];
+                downloadAnchor.setAttribute("download", `farmaStock_backup_${dataAtual}.json`);
+                
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                
+                alert("💾 Cópia de segurança automática realizada com sucesso! O ficheiro foi guardado no telemóvel.");
+                
+            } catch (error) {
+                console.error("Erro ao realizar backup automático:", error);
             }
         }
 
@@ -1012,6 +1070,9 @@
             document.getElementById('form-utilizador').reset();
         }
 
+        // ==========================================
+        // 🔒 CORREÇÃO DA CRIAÇÃO DE UTILIZADORES
+        // ==========================================
         document.getElementById('form-utilizador').addEventListener('submit', async (e) => {
             e.preventDefault();
             const nome = document.getElementById('user-nome').value.trim();
@@ -1019,13 +1080,33 @@
             const senha = document.getElementById('user-senha').value;
             const tipo = document.getElementById('user-tipo').value;
 
+            let appSecundaria = null;
             try {
-                const cred = await firebase.auth().createUserWithEmailAndPassword(email, senha);
-                await db.collection('utilizadores').doc(cred.user.uid).set({ nome, email, tipo, criadoEm: new Date().toISOString() });
+                // Inicializa app secundária para não afetar a sessão do Admin atual
+                appSecundaria = firebase.initializeApp(firebaseConfig, "AppSecundaria");
+                const authSecundaria = appSecundaria.auth();
+
+                const cred = await authSecundaria.createUserWithEmailAndPassword(email, senha);
+                const novoUid = cred.user.uid;
+
+                await db.collection('utilizadores').doc(novoUid).set({
+                    nome, 
+                    email, 
+                    tipo, 
+                    criadoEm: new Date().toISOString() 
+                });
+
+                await authSecundaria.signOut();
+                await appSecundaria.delete();
+
                 fecharModal('modal-utilizador');
                 await carregarListaUtilizadores();
                 alert("✅ Utilizador criado com sucesso!");
+
             } catch (erro) {
+                if (appSecundaria) {
+                    try { await appSecundaria.delete(); } catch(err) {}
+                }
                 alert("❌ Erro ao criar utilizador: " + erro.message);
             }
         });
