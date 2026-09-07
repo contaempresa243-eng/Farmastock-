@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
+// O App Check foi removido temporariamente para evitar bloqueios no Firestore
+// import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 
 // 1. Configuração do seu projeto Firebase (FarmaStock)
 const firebaseConfig = {
@@ -16,13 +17,7 @@ const firebaseConfig = {
 // 2. Inicializar o Firebase
 const app = initializeApp(firebaseConfig);
 
-// 3. Inicializar o App Check com o reCAPTCHA Enterprise
-const appCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaEnterpriseProvider('6Lcojq4tAAAAAI8jJ-0AlfBdLzYo3RgDzs3oHKoG'),
-  isTokenAutoRefreshEnabled: true
-});
-
-// 4. Inicializar os serviços que o FarmaStock utiliza
+// 3. Inicializar os serviços que o FarmaStock utiliza
 const auth = getAuth(app);
 const db = getFirestore(app);
 
