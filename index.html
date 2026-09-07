@@ -506,7 +506,7 @@
             }
         }
 
-        // Observador de Sessão
+                // Observador de Sessão
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 await iniciarAplicacao(user);
@@ -521,7 +521,7 @@
         async function iniciarAplicacao(firebaseUser) {
             try {
                 const doc = await db.collection('utilizadores').doc(firebaseUser.uid).get();
-                if (!doc.exists) throw new Error("Utilizador não encontrado na base de dados");
+                if (!doc.exists) throw new Error("Utilizador não encontrado na base de dados. UID: " + firebaseUser.uid);
                 
                 utilizadorAtual = { id: firebaseUser.uid, ...doc.data() };
                 tipoUtilizador = utilizadorAtual.tipo;
@@ -546,6 +546,8 @@
 
             } catch (erro) {
                 console.error("Erro ao carregar dados:", erro);
+                // 🔴 AGORA O ERRO APARECE NO ECRÃ DO TELEMÓVEL
+                alert("❌ Erro de carregamento: " + erro.message);
                 auth.signOut();
             }
         }
