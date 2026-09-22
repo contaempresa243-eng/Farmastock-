@@ -23,7 +23,6 @@
     <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-auth-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-app-check-compat.js"></script>
 
     <script>
         tailwind.config = {
@@ -84,7 +83,6 @@
                     <a href="#" onclick="mostrarRecuperarSenha(); return false;" style="color: #666666; text-decoration: none;">Esqueceu a senha?</a>
                 </div>
             </form>
-            <div id="debug-erro-login" class="hidden mt-4 p-3 rounded-lg bg-red-50 border border-red-300 text-red-700 text-xs break-words"></div>
             <p class="text-center text-sm text-gray-500 mt-4">
                 Acesso restrito a colaboradores autorizados
             </p>
@@ -471,16 +469,6 @@
         };
 
         firebase.initializeApp(firebaseConfig);
-
-        // App Check — protege o Firestore contra acesso fora da app.
-        // Substitui '6LcLSLAtAAAAAH6lcWa6rEiCWyUZBT7hVAi3Hz9G' pela Chave do site que
-        // obtiveste em https://www.google.com/recaptcha/admin/create (reCAPTCHA v3).
-        const appCheck = firebase.appCheck();
-        appCheck.activate(
-            new firebase.appCheck.ReCaptchaEnterpriseProvider('6LcLSLAtAAAAAH6lcWa6rEiCWyUZBT7hVAi3Hz9G'),
-            true
-        );
-
         const auth = firebase.auth();
         const db = firebase.firestore();
 
@@ -558,18 +546,10 @@
 
             } catch (erro) {
                 console.error("Erro ao carregar dados:", erro);
-                // Mostra o erro num banner visível no ecrã de login,
-                // porque alert()/confirm() não funcionam em PWA instalada (modo standalone) em vários telemóveis.
-                mostrarErroLogin("Erro de carregamento: " + erro.message);
+                // 🔴 AGORA O ERRO APARECE NO ECRÃ DO TELEMÓVEL
+                alert("❌ Erro de carregamento: " + erro.message);
                 auth.signOut();
             }
-        }
-
-        function mostrarErroLogin(mensagem) {
-            const el = document.getElementById('debug-erro-login');
-            if (!el) return;
-            el.textContent = "❌ " + mensagem;
-            el.classList.remove('hidden');
         }
 
         // ==========================================
@@ -654,12 +634,11 @@
             e.preventDefault();
             const email = document.getElementById('login-email').value.trim();
             const senha = document.getElementById('login-senha').value;
-            document.getElementById('debug-erro-login').classList.add('hidden');
 
             try {
                 await auth.signInWithEmailAndPassword(email, senha);
             } catch (erro) {
-                mostrarErroLogin("Erro de acesso: " + erro.message);
+                alert("❌ Erro de acesso: " + erro.message);
             }
         });
 
@@ -869,19 +848,37 @@
             });
         }
 
-        function abrirModalProduto(id=null, dados=null) {
-            document.getElementById('modal-produto').classList.remove('hidden');
-            document.getElementById('form-produto').reset();
-            document.getElementById('prod-id').value = id || '';
-            document.getElementById('titulo-modal-prod').textContent = id ? 'Editar Produto' : 'Novo Produto';
-            if (dados) {
-                Object.keys(dados).forEach(k => {
-                    const el = document.getElementById(`prod-${k}`);
-                    if(el) el.value = dados[k];
-                });
-                calcularLucroProd();
+        async function abrirModalProduto(id = null, dados = null) {
+    document.getElementById('modal-produto').classList.remove('hidden');
+    document.getElementById('form-produto').reset();
+    document.getElementById('prod-id').value = id || '';
+    document.getElementById('titulo-modal-prod').textContent = id ? 'Editar Produto' : 'Novo Produto';
+
+    // Se só veio o ID (clique no lápis da tabela), buscar os dados ao Firestore
+    if (id && !dados) {
+        try {
+            const doc = await db.collection('produtos').doc(id).get();
+            if (!doc.exists) {
+                alert("❌ Produto não encontrado.");
+                fecharModal('modal-produto');
+                return;
             }
+            dados = doc.data();
+        } catch (e) {
+            alert("❌ Erro ao carregar produto: " + e.message);
+            fecharModal('modal-produto');
+            return;
         }
+    }
+
+    if (dados) {
+        Object.keys(dados).forEach(k => {
+            const el = document.getElementById(`prod-${k}`);
+            if (el) el.value = dados[k];
+        });
+        calcularLucroProd();
+    }
+      }
 
         document.getElementById('form-produto').addEventListener('submit', async (e) => {
             e.preventDefault();
