@@ -984,10 +984,19 @@
                 <p class="text-xs text-gray-500 mt-2">Op: ${utilizadorAtual.nome}</p>
             `;
 
-            await carregarListaProdutos();
-            await carregarDadosDashboard();
-            alert("✅ Venda finalizada com sucesso!");
-        }
+                await carregarListaProdutos();
+    await carregarDadosDashboard();
+
+    // 🧹 Limpar formulário após venda concluída
+    document.getElementById('venda-produto').value = '';
+    document.getElementById('venda-qtd').value = 1;
+    document.getElementById('venda-preco').value = '';
+    document.getElementById('venda-total').value = '';
+    document.getElementById('venda-pago').value = '';
+    document.getElementById('venda-troco').value = '';
+
+    alert("✅ Venda finalizada com sucesso!");
+      }
 
         function imprimirRecibo() {
     if (!ultimoReciboTexto) return alert("Nenhum recibo gerado ainda!");
