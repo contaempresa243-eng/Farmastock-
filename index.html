@@ -1111,42 +1111,46 @@
         // 🔒 CORREÇÃO DA CRIAÇÃO DE UTILIZADORES
         // ==========================================
         document.getElementById('form-utilizador').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const nome = document.getElementById('user-nome').value.trim();
-            const email = document.getElementById('user-email').value.trim();
-            const senha = document.getElementById('user-senha').value;
-            const tipo = document.getElementById('user-tipo').value;
+    e.preventDefault();
+    const nome = document.getElementById('user-nome').value.trim();
+    const email = document.getElementById('user-email').value.trim();
+    const senha = document.getElementById('user-senha').value;
+    const tipo = document.getElementById('user-tipo').value;
 
-            let appSecundaria = null;
-            try {
-                // Inicializa app secundária para não afetar a sessão do Admin atual
-                appSecundaria = firebase.initializeApp(firebaseConfig, "AppSecundaria");
-                const authSecundaria = appSecundaria.auth();
+    let appSecundaria = null;
+    try {
+        // 🧹 Limpar instância anterior, se existir (evita "duplicate-app")
+        const existente = firebase.apps.find(a => a.name === "AppSecundaria");
+        if (existente) {
+            try { await existente.delete(); } catch (err) {}
+        }
 
-                const cred = await authSecundaria.createUserWithEmailAndPassword(email, senha);
-                const novoUid = cred.user.uid;
+        appSecundaria = firebase.initializeApp(firebaseConfig, "AppSecundaria");
+        const authSecundaria = appSecundaria.auth();
 
-                await db.collection('utilizadores').doc(novoUid).set({
-                    nome, 
-                    email, 
-                    tipo, 
-                    criadoEm: new Date().toISOString() 
-                });
+        const cred = await authSecundaria.createUserWithEmailAndPassword(email, senha);
+        const novoUid = cred.user.uid;
 
-                await authSecundaria.signOut();
-                await appSecundaria.delete();
-
-                fecharModal('modal-utilizador');
-                await carregarListaUtilizadores();
-                alert("✅ Utilizador criado com sucesso!");
-
-            } catch (erro) {
-                if (appSecundaria) {
-                    try { await appSecundaria.delete(); } catch(err) {}
-                }
-                alert("❌ Erro ao criar utilizador: " + erro.message);
-            }
+        await db.collection('utilizadores').doc(novoUid).set({
+            nome, email, tipo,
+            criadoEm: new Date().toISOString()
         });
+
+        await authSecundaria.signOut();
+        await appSecundaria.delete();
+        appSecundaria = null;
+
+        fecharModal('modal-utilizador');
+        await carregarListaUtilizadores();
+        alert("✅ Utilizador criado com sucesso!");
+
+    } catch (erro) {
+        if (appSecundaria) {
+            try { await appSecundaria.delete(); } catch (err) {}
+        }
+        alert("❌ Erro ao criar utilizador: " + erro.message);
+    }
+});
 
         async function apagarUtilizador(id) {
             if (!confirm("Tem certeza que deseja remover este utilizador?")) return;
