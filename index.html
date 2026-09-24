@@ -524,11 +524,15 @@
                 if (!doc.exists) throw new Error("Utilizador não encontrado na base de dados. UID: " + firebaseUser.uid);
                 
                 utilizadorAtual = { id: firebaseUser.uid, ...doc.data() };
-                tipoUtilizador = utilizadorAtual.tipo;
+console.log("📦 Dados do utilizador:", utilizadorAtual);
 
-                document.getElementById('nome-user').textContent = utilizadorAtual.nome.split(' ')[0];
-                document.getElementById('tipo-user').textContent = tipoUtilizador.toUpperCase();
-                aplicarPermissoes(tipoUtilizador);
+// Defesa: usar fallback se faltar nome ou tipo
+tipoUtilizador = utilizadorAtual.tipo || 'caixa';
+const nomeCompleto = utilizadorAtual.nome || utilizadorAtual.email || 'Utilizador';
+
+document.getElementById('nome-user').textContent = nomeCompleto.split(' ')[0];
+document.getElementById('tipo-user').textContent = tipoUtilizador.toUpperCase();
+aplicarPermissoes(tipoUtilizador);
 
                 document.getElementById('tela-login').classList.add('hidden');
                 document.getElementById('app-principal').classList.remove('hidden');
