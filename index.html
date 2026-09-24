@@ -990,12 +990,20 @@
         }
 
         function imprimirRecibo() {
-            if (!ultimoReciboTexto) return alert("Nenhum recibo gerado ainda!");
-            const janela = window.open('', '', 'width=400,height=600');
-            janela.document.write(`<pre style="font-family:monospace;">${document.getElementById('corpo-recibo').innerHTML}</pre>`);
-            janela.document.close();
-            janela.print();
-        }
+    if (!ultimoReciboTexto) return alert("Nenhum recibo gerado ainda!");
+    const conteudo = document.getElementById('corpo-recibo').innerText;
+    const janela = window.open('', '', 'width=400,height=600');
+    janela.document.write(`
+        <html>
+        <head><title>Recibo</title></head>
+        <body style="font-family:monospace; padding:12px; white-space:pre-wrap;">${conteudo}</body>
+        </html>
+    `);
+    janela.document.close();
+    janela.focus();
+    janela.print();
+    janela.close();
+      }
 
         function partilharWhatsApp() {
             if (!ultimoReciboTexto) return alert("Nenhum recibo gerado ainda!");
