@@ -950,77 +950,83 @@ aplicarPermissoes(tipoUtilizador);
         }
 
         async function registarVenda() {
-            const prodId = document.getElementById('venda-produto').value;
-            const qtd = parseInt(document.getElementById('venda-qtd').value);
-            const pago = parseFloat(document.getElementById('venda-pago').value) || 0;
-            if (!prodId || qtd < 1) return alert("Selecione um produto e quantidade válida!");
+    const btn = document.querySelector('button[onclick="registarVenda()"]');
+    const prodId = document.getElementById('venda-produto').value;
+    const qtd = parseInt(document.getElementById('venda-qtd').value);
+    const pago = parseFloat(document.getElementById('venda-pago').value) || 0;
 
-            const prodRef = db.collection('produtos').doc(prodId);
-let venda = null;
-let totalVenda = 0;
+    if (!prodId || qtd < 1) return alert("Selecione um produto e quantidade válida!");
 
-try {
-    // 🔒 Transação atómica: impede vendas simultâneas de ultrapassarem o stock
-    await db.runTransaction(async (transaction) => {
-        const prodDoc = await transaction.get(prodRef);
+    // 🔒 Feedback visual: desativar botão enquanto processa
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> A processar...';
+    }
 
-        if (!prodDoc.exists) {
-            throw new Error("Produto não encontrado.");
+    const prodRef = db.collection('produtos').doc(prodId);
+    let venda = null;
+    let totalVenda = 0;
+
+    // ---------- 1. Transação atómica ----------
+    try {
+        await db.runTransaction(async (transaction) => {
+            const prodDoc = await transaction.get(prodRef);
+
+            if (!prodDoc.exists) throw new Error("Produto não encontrado.");
+
+            const prod = prodDoc.data();
+
+            if (qtd > prod.stock) {
+                throw new Error(`Stock insuficiente! Disponível: ${prod.stock}`);
+            }
+
+            totalVenda = prod.venda * qtd;
+
+            if (pago < totalVenda) {
+                throw new Error("O valor pago é inferior ao total da venda!");
+            }
+
+            venda = {
+                produtoId: prodId,
+                produtoNome: prod.nome,
+                quantidade: qtd,
+                precoUnit: prod.venda,
+                custoUnit: prod.custo,
+                total: totalVenda,
+                lucro: (prod.venda - prod.custo) * qtd,
+                data: new Date().toISOString(),
+                operador: utilizadorAtual.nome
+            };
+
+            const vendaRef = db.collection('vendas').doc();
+            transaction.set(vendaRef, venda);
+            transaction.update(prodRef, { stock: prod.stock - qtd });
+        });
+    } catch (erro) {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-check mr-2"></i> Finalizar Venda';
         }
+        return alert("❌ " + erro.message);
+    }
 
-        const prod = prodDoc.data();
+    // ---------- 2. Venda registada: mostrar recibo ----------
+    const numRecibo = Date.now().toString().slice(-6);
+    const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
 
-        if (qtd > prod.stock) {
-            throw new Error(`Stock insuficiente! Disponível: ${prod.stock}`);
-        }
+    ultimoReciboTexto = `📄 RECIBO #${numRecibo}\n*${farmaciaNome}*\n------------------\nProd: ${venda.produtoNome}\nQtd: ${qtd}x\nTotal: ${totalVenda.toFixed(2)} Kz\nTroco: ${(pago - totalVenda).toFixed(2)} Kz\nOperador: ${utilizadorAtual.nome}\nData: ${new Date().toLocaleString()}\n------------------\nObrigado pela preferência!`;
 
-        totalVenda = prod.venda * qtd;
+    document.getElementById('corpo-recibo').innerHTML = `
+        <p><strong>Recibo:</strong> #${numRecibo}</p>
+        <p><strong>Produto:</strong> ${venda.produtoNome}</p>
+        <p><strong>Qtd:</strong> ${qtd}</p>
+        <p><strong>Total:</strong> ${totalVenda.toFixed(2)} Kz</p>
+        <p><strong>Pago:</strong> ${pago.toFixed(2)} Kz</p>
+        <p><strong>Troco:</strong> ${(pago - totalVenda).toFixed(2)} Kz</p>
+        <p class="text-xs text-gray-500 mt-2">Op: ${utilizadorAtual.nome}</p>
+    `;
 
-        if (pago < totalVenda) {
-            throw new Error("O valor pago é inferior ao total da venda!");
-        }
-
-        venda = {
-            produtoId: prodId,
-            produtoNome: prod.nome,
-            quantidade: qtd,
-            precoUnit: prod.venda,
-            custoUnit: prod.custo,
-            total: totalVenda,
-            lucro: (prod.venda - prod.custo) * qtd,
-            data: new Date().toISOString(),
-            operador: utilizadorAtual.nome
-        };
-
-        // Grava a venda
-        const vendaRef = db.collection('vendas').doc();
-        transaction.set(vendaRef, venda);
-
-        // Atualiza o stock (dentro da mesma transação)
-        transaction.update(prodRef, { stock: prod.stock - qtd });
-    });
-} catch (erro) {
-    return alert("❌ " + erro.message);
-      }
-            const numRecibo = Date.now().toString().slice(-6);
-            const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
-
-            ultimoReciboTexto = `📄 RECIBO #${numRecibo}\n*${farmaciaNome}*\n------------------\nProd: ${prod.nome}\nQtd: ${qtd}x\nTotal: ${totalVenda.toFixed(2)} Kz\nTroco: ${(pago - totalVenda).toFixed(2)} Kz\nOperador: ${utilizadorAtual.nome}\nData: ${new Date().toLocaleString()}\n------------------\nObrigado pela preferência!`;
-
-            document.getElementById('corpo-recibo').innerHTML = `
-                <p><strong>Recibo:</strong> #${numRecibo}</p>
-                <p><strong>Produto:</strong> ${venda.produtoNome}</p>
-                <p><strong>Qtd:</strong> ${qtd}</p>
-                <p><strong>Total:</strong> ${totalVenda.toFixed(2)} Kz</p>
-                <p><strong>Pago:</strong> ${pago.toFixed(2)} Kz</p>
-                <p><strong>Troco:</strong> ${(pago - totalVenda).toFixed(2)} Kz</p>
-                <p class="text-xs text-gray-500 mt-2">Op: ${utilizadorAtual.nome}</p>
-            `;
-
-                await carregarListaProdutos();
-    await carregarDadosDashboard();
-
-    // 🧹 Limpar formulário após venda concluída
+    // ---------- 3. Limpar formulário ----------
     document.getElementById('venda-produto').value = '';
     document.getElementById('venda-qtd').value = 1;
     document.getElementById('venda-preco').value = '';
@@ -1028,8 +1034,19 @@ try {
     document.getElementById('venda-pago').value = '';
     document.getElementById('venda-troco').value = '';
 
+    // Restaurar botão
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-check mr-2"></i> Finalizar Venda';
+    }
+
+    // ---------- 4. Confirmar (antes dos reloads) ----------
     alert("✅ Venda finalizada com sucesso!");
-      }
+
+    // ---------- 5. Recarregar em background (sem bloquear) ----------
+    carregarListaProdutos().catch(e => console.error("Erro produtos:", e));
+    carregarDadosDashboard().catch(e => console.error("Erro dashboard:", e));
+}
 
         function imprimirRecibo() {
     if (!ultimoReciboTexto) return alert("Nenhum recibo gerado ainda!");
