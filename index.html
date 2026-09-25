@@ -956,29 +956,52 @@ aplicarPermissoes(tipoUtilizador);
             if (!prodId || qtd < 1) return alert("Selecione um produto e quantidade válida!");
 
             const prodRef = db.collection('produtos').doc(prodId);
-            const prodDoc = await prodRef.get();
-            const prod = prodDoc.data();
+let venda = null;
+let totalVenda = 0;
 
-            if (qtd > prod.stock) return alert("❌ Stock insuficiente! Disponível: " + prod.stock);
+try {
+    // 🔒 Transação atómica: impede vendas simultâneas de ultrapassarem o stock
+    await db.runTransaction(async (transaction) => {
+        const prodDoc = await transaction.get(prodRef);
 
-            const totalVenda = prod.venda * qtd;
-            if (pago < totalVenda) return alert("❌ O valor pago é inferior ao total da venda!");
+        if (!prodDoc.exists) {
+            throw new Error("Produto não encontrado.");
+        }
 
-            const venda = {
-                produtoId: prodId,
-                produtoNome: prod.nome,
-                quantidade: qtd,
-                precoUnit: prod.venda,
-                custoUnit: prod.custo,
-                total: totalVenda,
-                lucro: (prod.venda - prod.custo) * qtd,
-                data: new Date().toISOString(),
-                operador: utilizadorAtual.nome
-            };
+        const prod = prodDoc.data();
 
-            await db.collection('vendas').add(venda);
-            await prodRef.update({ stock: prod.stock - qtd });
+        if (qtd > prod.stock) {
+            throw new Error(`Stock insuficiente! Disponível: ${prod.stock}`);
+        }
 
+        totalVenda = prod.venda * qtd;
+
+        if (pago < totalVenda) {
+            throw new Error("O valor pago é inferior ao total da venda!");
+        }
+
+        venda = {
+            produtoId: prodId,
+            produtoNome: prod.nome,
+            quantidade: qtd,
+            precoUnit: prod.venda,
+            custoUnit: prod.custo,
+            total: totalVenda,
+            lucro: (prod.venda - prod.custo) * qtd,
+            data: new Date().toISOString(),
+            operador: utilizadorAtual.nome
+        };
+
+        // Grava a venda
+        const vendaRef = db.collection('vendas').doc();
+        transaction.set(vendaRef, venda);
+
+        // Atualiza o stock (dentro da mesma transação)
+        transaction.update(prodRef, { stock: prod.stock - qtd });
+    });
+} catch (erro) {
+    return alert("❌ " + erro.message);
+      }
             const numRecibo = Date.now().toString().slice(-6);
             const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
 
@@ -986,7 +1009,7 @@ aplicarPermissoes(tipoUtilizador);
 
             document.getElementById('corpo-recibo').innerHTML = `
                 <p><strong>Recibo:</strong> #${numRecibo}</p>
-                <p><strong>Produto:</strong> ${prod.nome}</p>
+                <p><strong>Produto:</strong> ${venda.produtoNome}</p>
                 <p><strong>Qtd:</strong> ${qtd}</p>
                 <p><strong>Total:</strong> ${totalVenda.toFixed(2)} Kz</p>
                 <p><strong>Pago:</strong> ${pago.toFixed(2)} Kz</p>
