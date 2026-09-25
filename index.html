@@ -505,6 +505,7 @@
         let dadosRelatorio = null;
         let graficoVendas = null, graficoStock = null;
         let ultimoReciboTexto = '';
+      let carrinho = [];
 
       // 🛡️ Escapar HTML para prevenir XSS
 function escaparHTML(texto) {
@@ -954,29 +955,145 @@ aplicarPermissoes(tipoUtilizador);
             await carregarDadosDashboard();
         }
 
-        document.getElementById('venda-produto').addEventListener('change', async () => {
-            const id = document.getElementById('venda-produto').value;
-            if (!id) return;
-            const doc = await db.collection('produtos').doc(id).get();
-            const p = doc.data();
-            document.getElementById('venda-preco').value = p.venda.toFixed(2) + ' Kz';
-            atualizarTotalVenda();
-        });
-        document.getElementById('venda-qtd').addEventListener('input', atualizarTotalVenda);
-        document.getElementById('venda-pago').addEventListener('input', atualizarTroco);
+        // ==========================================
+// 🛒 GESTÃO DO CARRINHO DE VENDAS
+// ==========================================
 
-        function atualizarTotalVenda() {
-            const preco = parseFloat(document.getElementById('venda-preco').value) || 0;
-            const qtd = parseInt(document.getElementById('venda-qtd').value) || 0;
-            document.getElementById('venda-total').value = (preco * qtd).toFixed(2) + ' Kz';
-            atualizarTroco();
+// Quando o produto muda no select, mostra o preço
+document.getElementById('venda-produto').addEventListener('change', async () => {
+    const id = document.getElementById('venda-produto').value;
+    if (!id) {
+        document.getElementById('venda-preco').value = '';
+        return;
+    }
+    try {
+        const doc = await db.collection('produtos').doc(id).get();
+        if (!doc.exists) return;
+        const p = doc.data();
+        document.getElementById('venda-preco').value = p.venda.toFixed(2) + ' Kz';
+    } catch (e) {
+        console.error("Erro a carregar produto:", e);
+    }
+});
+
+// Valor pago -> recalcular troco
+document.getElementById('venda-pago').addEventListener('input', atualizarTroco);
+
+// Adicionar produto ao carrinho
+async function adicionarAoCarrinho() {
+    const prodId = document.getElementById('venda-produto').value;
+    const qtd = parseInt(document.getElementById('venda-qtd').value);
+
+    if (!prodId) return alert("Selecione um produto!");
+    if (!qtd || qtd < 1) return alert("Quantidade inválida!");
+
+    try {
+        const doc = await db.collection('produtos').doc(prodId).get();
+        if (!doc.exists) return alert("Produto não encontrado.");
+
+        const p = doc.data();
+
+        // Verificar se já está no carrinho
+        const existente = carrinho.find(item => item.produtoId === prodId);
+        const qtdTotal = (existente ? existente.quantidade : 0) + qtd;
+
+        if (qtdTotal > p.stock) {
+            return alert(`Stock insuficiente! Disponível: ${p.stock}`);
         }
 
-        function atualizarTroco() {
-            const total = parseFloat(document.getElementById('venda-total').value) || 0;
-            const pago = parseFloat(document.getElementById('venda-pago').value) || 0;
-            document.getElementById('venda-troco').value = Math.max(0, pago - total).toFixed(2) + ' Kz';
+        if (existente) {
+            existente.quantidade = qtdTotal;
+        } else {
+            carrinho.push({
+                produtoId: prodId,
+                produtoNome: p.nome,
+                quantidade: qtd,
+                precoUnit: p.venda,
+                custoUnit: p.custo,
+                stockDisponivel: p.stock
+            });
         }
+
+        // Limpar campo de adicionar
+        document.getElementById('venda-produto').value = '';
+        document.getElementById('venda-qtd').value = 1;
+        document.getElementById('venda-preco').value = '';
+
+        renderizarCarrinho();
+
+    } catch (e) {
+        alert("❌ Erro: " + e.message);
+    }
+}
+
+// Remover item do carrinho
+function removerDoCarrinho(index) {
+    carrinho.splice(index, 1);
+    renderizarCarrinho();
+}
+
+// Limpar carrinho inteiro
+function limparCarrinho() {
+    if (carrinho.length === 0) return;
+    if (!confirm("Limpar todo o carrinho?")) return;
+    carrinho = [];
+    renderizarCarrinho();
+    document.getElementById('venda-pago').value = '';
+    document.getElementById('venda-troco').value = '';
+}
+
+// Desenhar o carrinho no ecrã
+function renderizarCarrinho() {
+    const lista = document.getElementById('carrinho-lista');
+    const vazio = document.getElementById('carrinho-vazio');
+    const totalEl = document.getElementById('carrinho-total');
+
+    if (carrinho.length === 0) {
+        lista.classList.add('hidden');
+        vazio.classList.remove('hidden');
+        totalEl.textContent = '0.00 Kz';
+        atualizarTroco();
+        return;
+    }
+
+    vazio.classList.add('hidden');
+    lista.classList.remove('hidden');
+
+    lista.innerHTML = carrinho.map((item, i) => {
+        const subtotal = item.precoUnit * item.quantidade;
+        return `
+            <div class="flex items-center justify-between bg-white border rounded-lg p-2 text-sm">
+                <div class="flex-1">
+                    <div class="font-medium">${escaparHTML(item.produtoNome)}</div>
+                    <div class="text-xs text-gray-500">${item.quantidade} × ${item.precoUnit.toFixed(2)} Kz</div>
+                </div>
+                <div class="text-right mr-2">
+                    <div class="font-bold">${subtotal.toFixed(2)} Kz</div>
+                </div>
+                <button onclick="removerDoCarrinho(${i})" class="text-red-500 p-1">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+        `;
+    }).join('');
+
+    const total = carrinho.reduce((s, item) => s + (item.precoUnit * item.quantidade), 0);
+    totalEl.textContent = total.toFixed(2) + ' Kz';
+    atualizarTroco();
+}
+
+// Calcular total do carrinho
+function totalCarrinho() {
+    return carrinho.reduce((s, item) => s + (item.precoUnit * item.quantidade), 0);
+}
+
+// Atualizar troco com base no total do carrinho
+function atualizarTroco() {
+    const total = totalCarrinho();
+    const pago = parseFloat(document.getElementById('venda-pago').value) || 0;
+    const troco = Math.max(0, pago - total);
+    document.getElementById('venda-troco').value = troco.toFixed(2) + ' Kz';
+      }
 
         async function registarVenda() {
     const btn = document.querySelector('button[onclick="registarVenda()"]');
