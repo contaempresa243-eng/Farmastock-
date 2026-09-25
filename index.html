@@ -489,6 +489,18 @@
         let graficoVendas = null, graficoStock = null;
         let ultimoReciboTexto = '';
 
+      // 🛡️ Escapar HTML para prevenir XSS
+function escaparHTML(texto) {
+    if (texto === null || texto === undefined) return '';
+    return String(texto)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+
         // Funções para Criar Conta e Recuperar Senha (Login)
         function mostrarCriarConta() {
             alert("ℹ️ O registo direto está restrito. Por favor, solicite a criação de conta a um Administrador ou utilize a área de Utilizadores dentro do sistema.");
@@ -816,20 +828,20 @@ aplicarPermissoes(tipoUtilizador);
                 const lucro = (p.venda || 0) - (p.custo || 0);
                 const alerta = p.stock <= p.minimo ? 'text-red-600 font-bold' : '';
                 return `
-                <tr class="border-b">
-                    <td class="p-2 text-xs">${p.codigo || '—'}</td>
-                    <td class="p-2">${p.nome}</td>
-                    <td class="p-2">${p.lote}</td>
-                    <td class="p-2">${p.validade}</td>
-                    <td class="p-2 text-center ${alerta}">${p.stock}</td>
-                    <td class="p-2 text-right">${(p.custo||0).toFixed(2)} Kz</td>
-                    <td class="p-2 text-right">${(p.venda||0).toFixed(2)} Kz</td>
-                    <td class="p-2 text-right text-green-600">${lucro.toFixed(2)} Kz</td>
-                    <td class="p-2 text-center">
-                        <button onclick="abrirModalProduto('${doc.id}')" class="text-blue-500 mr-2"><i class="fa fa-pencil"></i></button>
-                        <button onclick="apagarProduto('${doc.id}')" class="text-red-500"><i class="fa fa-trash"></i></button>
-                    </td>
-                </tr>`;
+<tr class="border-b">
+    <td class="p-2 text-xs">${escaparHTML(p.codigo) || '—'}</td>
+    <td class="p-2">${escaparHTML(p.nome)}</td>
+    <td class="p-2">${escaparHTML(p.lote)}</td>
+    <td class="p-2">${escaparHTML(p.validade)}</td>
+    <td class="p-2 text-center ${alerta}">${p.stock}</td>
+    <td class="p-2 text-right">${(p.custo||0).toFixed(2)} Kz</td>
+    <td class="p-2 text-right">${(p.venda||0).toFixed(2)} Kz</td>
+    <td class="p-2 text-right text-green-600">${lucro.toFixed(2)} Kz</td>
+    <td class="p-2 text-center">
+        <button onclick="abrirModalProduto('${doc.id}')" class="text-blue-500 mr-2"><i class="fa fa-pencil"></i></button>
+        <button onclick="apagarProduto('${doc.id}')" class="text-red-500"><i class="fa fa-trash"></i></button>
+    </td>
+</tr>`;
             }).join('');
         }
 
@@ -1141,14 +1153,14 @@ aplicarPermissoes(tipoUtilizador);
             tbody.innerHTML = snap.docs.map(doc => {
                 const u = doc.data();
                 return `
-                <tr class="border-b">
-                    <td class="p-2">${u.nome}</td>
-                    <td class="p-2">${u.email}</td>
-                    <td class="p-2 uppercase font-bold text-xs">${u.tipo}</td>
-                    <td class="p-2 text-center">
-                        <button onclick="apagarUtilizador('${doc.id}')" class="text-red-500"><i class="fa fa-trash"></i></button>
-                    </td>
-                </tr>`;
+<tr class="border-b">
+    <td class="p-2">${escaparHTML(u.nome)}</td>
+    <td class="p-2">${escaparHTML(u.email)}</td>
+    <td class="p-2 uppercase font-bold text-xs">${escaparHTML(u.tipo)}</td>
+    <td class="p-2 text-center">
+        <button onclick="apagarUtilizador('${doc.id}')" class="text-red-500"><i class="fa fa-trash"></i></button>
+    </td>
+</tr>`;
             }).join('');
         }
 
