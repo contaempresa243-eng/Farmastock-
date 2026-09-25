@@ -616,22 +616,28 @@ aplicarPermissoes(tipoUtilizador);
         }
 
         // Controlo de Permissões
-        function aplicarPermissoes(tipo) {
-            tipoUtilizador = tipo;
-            document.querySelectorAll('.perm-admin, .perm-gestor, .perm-caixa').forEach(el => el.classList.add('perm-oculto'));
-            
-            if (tipo === 'admin') {
-                document.querySelectorAll('.perm-admin, .perm-gestor, .perm-caixa').forEach(el => el.classList.remove('perm-oculto'));
-            } else if (tipo === 'gestor') {
-                document.querySelectorAll('.perm-gestor, .perm-caixa').forEach(el => el.classList.remove('perm-oculto'));
-            } else if (tipo === 'caixa') {
-                document.querySelectorAll('.perm-caixa').forEach(el => el.classList.remove('perm-oculto'));
-                ['produtos', 'relatorios', 'utilizadores', 'configuracoes'].forEach(id => {
-                    document.getElementById(`nav-${id}`)?.classList.add('perm-oculto');
-                });
-                abrirSecao('pdv');
-            }
-        }
+       function aplicarPermissoes(tipo) {
+    // 🔧 Normalizar: minúsculas + sem espaços (tolera "Admin", "ADMIN ", etc.)
+    tipoUtilizador = (tipo || '').trim().toLowerCase();
+
+    document.querySelectorAll('.perm-admin, .perm-gestor, .perm-caixa')
+        .forEach(el => el.classList.add('perm-oculto'));
+
+    if (tipoUtilizador === 'admin') {
+        document.querySelectorAll('.perm-admin, .perm-gestor, .perm-caixa')
+            .forEach(el => el.classList.remove('perm-oculto'));
+    } else if (tipoUtilizador === 'gestor') {
+        document.querySelectorAll('.perm-gestor, .perm-caixa')
+            .forEach(el => el.classList.remove('perm-oculto'));
+    } else if (tipoUtilizador === 'caixa') {
+        document.querySelectorAll('.perm-caixa')
+            .forEach(el => el.classList.remove('perm-oculto'));
+        ['produtos', 'relatorios', 'utilizadores', 'configuracoes'].forEach(id => {
+            document.getElementById(`nav-${id}`)?.classList.add('perm-oculto');
+        });
+        abrirSecao('pdv');
+    }
+      }
 
         // Submissão do Login
         document.getElementById('form-login').addEventListener('submit', async (e) => {
