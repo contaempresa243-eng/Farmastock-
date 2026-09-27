@@ -110,7 +110,7 @@
 
         <!-- MENU DE NAVEGAÇÃO -->
         <nav class="bg-gray-50 border-b p-2 sticky top-16 z-30">
-            <div class="grid grid-cols-2 md:grid-cols-6 gap-2 text-sm font-medium">
+            <div class="grid grid-cols-2 md:grid-cols-7 gap-2 text-sm font-medium">
                 <button onclick="abrirSecao('dashboard')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn" id="nav-dashboard">
                     <i class="fa fa-chart-pie block text-lg mb-1"></i>Painel
                 </button>
@@ -123,6 +123,9 @@
                 <button onclick="abrirSecao('relatorios')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn" id="nav-relatorios">
                     <i class="fa fa-file-text block text-lg mb-1"></i>Relatórios
                 </button>
+              <button onclick="abrirSecao('historico')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn" id="nav-historico">
+    <i class="fa fa-history block text-lg mb-1"></i>Histórico
+              </button>
                 <button onclick="abrirSecao('utilizadores')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn perm-gestor perm-admin" id="nav-utilizadores">
                     <i class="fa fa-users block text-lg mb-1"></i>Utilizadores
                 </button>
@@ -345,6 +348,50 @@
                     <div id="conteudo-relatorio" class="bg-white p-4 rounded border text-sm max-h-[500px] overflow-auto"></div>
                 </div>
             </section>
+
+          <!-- 📜 HISTÓRICO DE VENDAS -->
+<section id="historico" class="secao">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+        <h2 class="text-2xl font-bold">Histórico de Vendas</h2>
+        <div class="flex gap-2 flex-wrap">
+            <select id="hist-filtro" onchange="filtrarHistorico()" class="border p-2 rounded-lg text-sm">
+                <option value="hoje">Hoje</option>
+                <option value="semana">Últimos 7 dias</option>
+                <option value="mes">Últimos 30 dias</option>
+                <option value="tudo">Tudo</option>
+            </select>
+            <button onclick="abrirHistorico()" class="bg-primary text-white px-3 py-2 rounded-lg btn text-sm">
+                <i class="fa fa-refresh mr-1"></i> Atualizar
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div class="bg-blue-50 p-3 rounded-lg border">
+            <p class="text-xs text-gray-500">Vendas</p>
+            <p class="text-xl font-bold text-blue-700" id="hist-total-vendas">0</p>
+        </div>
+        <div class="bg-green-50 p-3 rounded-lg border">
+            <p class="text-xs text-gray-500">Faturação</p>
+            <p class="text-xl font-bold text-green-700" id="hist-total-faturado">0 Kz</p>
+        </div>
+        <div class="bg-purple-50 p-3 rounded-lg border">
+            <p class="text-xs text-gray-500">Lucro</p>
+            <p class="text-xl font-bold text-purple-700" id="hist-total-lucro">0 Kz</p>
+        </div>
+        <div class="bg-amber-50 p-3 rounded-lg border">
+            <p class="text-xs text-gray-500">Anuladas</p>
+            <p class="text-xl font-bold text-amber-700" id="hist-total-anuladas">0</p>
+        </div>
+    </div>
+
+    <div id="hist-lista" class="space-y-2">
+        <div class="text-center text-gray-500 py-8 border rounded-lg">
+            <i class="fa fa-history text-3xl mb-2 block"></i>
+            Clique em <strong>Atualizar</strong> para carregar o histórico
+        </div>
+    </div>
+</section>
 
             <!-- 👥 UTILIZADORES -->
             <section id="utilizadores" class="secao perm-gestor perm-admin">
