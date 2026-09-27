@@ -506,6 +506,7 @@
         let graficoVendas = null, graficoStock = null;
         let ultimoReciboTexto = '';
       let carrinho = [];
+      let ultimaVenda = null;
 
       // 🛡️ Escapar HTML para prevenir XSS
 function escaparHTML(texto) {
@@ -1097,101 +1098,148 @@ function atualizarTroco() {
 
         async function registarVenda() {
     const btn = document.querySelector('button[onclick="registarVenda()"]');
-    const prodId = document.getElementById('venda-produto').value;
-    const qtd = parseInt(document.getElementById('venda-qtd').value);
+
+    if (carrinho.length === 0) {
+        return alert("Carrinho vazio! Adicione produtos antes de finalizar.");
+    }
+
+    const total = totalCarrinho();
     const pago = parseFloat(document.getElementById('venda-pago').value) || 0;
 
-    if (!prodId || qtd < 1) return alert("Selecione um produto e quantidade válida!");
+    if (pago < total) {
+        return alert(`❌ O valor pago (${pago.toFixed(2)} Kz) é inferior ao total (${total.toFixed(2)} Kz).`);
+    }
 
-    // 🔒 Feedback visual: desativar botão enquanto processa
+    // Feedback visual
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> A processar...';
     }
 
-    const prodRef = db.collection('produtos').doc(prodId);
-    let venda = null;
-    let totalVenda = 0;
+    // Snapshot para a transação
+    const itensVenda = carrinho.map(i => ({ ...i }));
 
-    // ---------- 1. Transação atómica ----------
     try {
         await db.runTransaction(async (transaction) => {
-            const prodDoc = await transaction.get(prodRef);
+            // 1. Verificar stock de todos os produtos
+            const refs = itensVenda.map(i => db.collection('produtos').doc(i.produtoId));
+            const docs = await Promise.all(refs.map(ref => transaction.get(ref)));
 
-            if (!prodDoc.exists) throw new Error("Produto não encontrado.");
+            for (let i = 0; i < itensVenda.length; i++) {
+                const doc = docs[i];
+                const item = itensVenda[i];
 
-            const prod = prodDoc.data();
+                if (!doc.exists) {
+                    throw new Error(`Produto "${item.produtoNome}" já não existe.`);
+                }
 
-            if (qtd > prod.stock) {
-                throw new Error(`Stock insuficiente! Disponível: ${prod.stock}`);
+                const stockAtual = doc.data().stock;
+                if (item.quantidade > stockAtual) {
+                    throw new Error(`Stock insuficiente para "${item.produtoNome}". Disponível: ${stockAtual}`);
+                }
             }
 
-            totalVenda = prod.venda * qtd;
-
-            if (pago < totalVenda) {
-                throw new Error("O valor pago é inferior ao total da venda!");
-            }
-
-            venda = {
-                produtoId: prodId,
-                produtoNome: prod.nome,
-                quantidade: qtd,
-                precoUnit: prod.venda,
-                custoUnit: prod.custo,
-                total: totalVenda,
-                lucro: (prod.venda - prod.custo) * qtd,
+            // 2. Gravar venda única com todos os itens
+            const numRecibo = Date.now().toString().slice(-6);
+            const venda = {
+                itens: itensVenda.map(i => ({
+                    produtoId: i.produtoId,
+                    produtoNome: i.produtoNome,
+                    quantidade: i.quantidade,
+                    precoUnit: i.precoUnit,
+                    custoUnit: i.custoUnit,
+                    subtotal: i.precoUnit * i.quantidade
+                })),
+                total: total,
+                pago: pago,
+                troco: pago - total,
+                lucro: itensVenda.reduce((s, i) => s + ((i.precoUnit - i.custoUnit) * i.quantidade), 0),
                 data: new Date().toISOString(),
-                operador: utilizadorAtual.nome
+                operador: utilizadorAtual.nome,
+                numRecibo: numRecibo
             };
 
             const vendaRef = db.collection('vendas').doc();
             transaction.set(vendaRef, venda);
-            transaction.update(prodRef, { stock: prod.stock - qtd });
+
+            // 3. Decrementar stock de cada produto
+            for (let i = 0; i < itensVenda.length; i++) {
+                const stockAtual = docs[i].data().stock;
+                transaction.update(refs[i], { stock: stockAtual - itensVenda[i].quantidade });
+            }
+
+            // 4. Guardar dados para o recibo (fora da transação)
+            venda._numRecibo = numRecibo;
+            ultimaVenda = venda;
         });
+
     } catch (erro) {
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fa fa-check mr-2"></i> Finalizar Venda';
+            btn.innerHTML = '<i class="fa fa-check mr-1"></i> Finalizar';
         }
         return alert("❌ " + erro.message);
     }
 
-    // ---------- 2. Venda registada: mostrar recibo ----------
-    const numRecibo = Date.now().toString().slice(-6);
-    const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
+    // ---------- Venda OK: gerar recibo ----------
+    gerarRecibo(ultimaVenda);
 
-    ultimoReciboTexto = `📄 RECIBO #${numRecibo}\n*${farmaciaNome}*\n------------------\nProd: ${venda.produtoNome}\nQtd: ${qtd}x\nTotal: ${totalVenda.toFixed(2)} Kz\nTroco: ${(pago - totalVenda).toFixed(2)} Kz\nOperador: ${utilizadorAtual.nome}\nData: ${new Date().toLocaleString()}\n------------------\nObrigado pela preferência!`;
-
-    document.getElementById('corpo-recibo').innerHTML = `
-        <p><strong>Recibo:</strong> #${numRecibo}</p>
-        <p><strong>Produto:</strong> ${venda.produtoNome}</p>
-        <p><strong>Qtd:</strong> ${qtd}</p>
-        <p><strong>Total:</strong> ${totalVenda.toFixed(2)} Kz</p>
-        <p><strong>Pago:</strong> ${pago.toFixed(2)} Kz</p>
-        <p><strong>Troco:</strong> ${(pago - totalVenda).toFixed(2)} Kz</p>
-        <p class="text-xs text-gray-500 mt-2">Op: ${utilizadorAtual.nome}</p>
-    `;
-
-    // ---------- 3. Limpar formulário ----------
-    document.getElementById('venda-produto').value = '';
-    document.getElementById('venda-qtd').value = 1;
-    document.getElementById('venda-preco').value = '';
-    document.getElementById('venda-total').value = '';
+    // ---------- Limpar ----------
+    carrinho = [];
+    renderizarCarrinho();
     document.getElementById('venda-pago').value = '';
     document.getElementById('venda-troco').value = '';
 
-    // Restaurar botão
     if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa fa-check mr-2"></i> Finalizar Venda';
+        btn.innerHTML = '<i class="fa fa-check mr-1"></i> Finalizar';
     }
 
-    // ---------- 4. Confirmar (antes dos reloads) ----------
     alert("✅ Venda finalizada com sucesso!");
 
-    // ---------- 5. Recarregar em background (sem bloquear) ----------
+    // Recarregar em background
     carregarListaProdutos().catch(e => console.error("Erro produtos:", e));
     carregarDadosDashboard().catch(e => console.error("Erro dashboard:", e));
+}
+
+// ==========================================
+// 🧾 GERAR RECIBO DE VENDA COM MÚLTIPLOS ITENS
+// ==========================================
+function gerarRecibo(venda) {
+    const numRecibo = venda._numRecibo || venda.numRecibo;
+    const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
+
+    // Texto para partilhar (WhatsApp/SMS)
+    let texto = `📄 RECIBO #${numRecibo}\n*${farmaciaNome}*\n`;
+    texto += '------------------\n';
+    venda.itens.forEach(i => {
+        texto += `${i.produtoNome}\n  ${i.quantidade} × ${i.precoUnit.toFixed(2)} = ${i.subtotal.toFixed(2)} Kz\n`;
+    });
+    texto += '------------------\n';
+    texto += `TOTAL: ${venda.total.toFixed(2)} Kz\n`;
+    texto += `Pago: ${venda.pago.toFixed(2)} Kz\n`;
+    texto += `Troco: ${venda.troco.toFixed(2)} Kz\n`;
+    texto += `Operador: ${venda.operador}\n`;
+    texto += `Data: ${new Date(venda.data).toLocaleString()}\n`;
+    texto += '------------------\n';
+    texto += 'Obrigado pela preferência!';
+
+    ultimoReciboTexto = texto;
+
+    // HTML do recibo no ecrã
+    let html = `<p><strong>Recibo:</strong> #${numRecibo}</p>`;
+    html += '<hr class="my-2">';
+    venda.itens.forEach(i => {
+        html += `<p><strong>${escaparHTML(i.produtoNome)}</strong><br>
+                 ${i.quantidade} × ${i.precoUnit.toFixed(2)} = <strong>${i.subtotal.toFixed(2)} Kz</strong></p>`;
+    });
+    html += '<hr class="my-2">';
+    html += `<p><strong>Total:</strong> ${venda.total.toFixed(2)} Kz</p>`;
+    html += `<p><strong>Pago:</strong> ${venda.pago.toFixed(2)} Kz</p>`;
+    html += `<p><strong>Troco:</strong> ${venda.troco.toFixed(2)} Kz</p>`;
+    html += `<p class="text-xs text-gray-500 mt-2">Op: ${escaparHTML(venda.operador)}</p>`;
+
+    document.getElementById('corpo-recibo').innerHTML = html;
 }
 
         function imprimirRecibo() {
