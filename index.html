@@ -1314,6 +1314,203 @@ function gerarRecibo(venda) {
             if (!ultimoReciboTexto) return alert("Nenhum recibo gerado ainda!");
             window.open(`sms:?body=${encodeURIComponent(ultimoReciboTexto)}`, '_blank');
         }
+      
+   // ==========================================
+// 📜 HISTÓRICO DE VENDAS
+// ==========================================
+let historicoVendas = [];  // cache local
+
+async function abrirHistorico() {
+    const lista = document.getElementById('hist-lista');
+    lista.innerHTML = `
+        <div class="text-center text-gray-500 py-8">
+            <i class="fa fa-spinner fa-spin text-2xl mb-2 block"></i>
+            A carregar...
+        </div>`;
+
+    try {
+        const snap = await db.collection('vendas').orderBy('data', 'desc').limit(200).get();
+        historicoVendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        aplicarFiltroHistorico();
+    } catch (e) {
+        console.error("Erro ao carregar histórico:", e);
+        lista.innerHTML = `<div class="text-center text-red-500 py-8">Erro: ${e.message}</div>`;
+    }
+}
+
+function filtrarHistorico() {
+    // Se ainda não carregou, força o carregamento
+    if (historicoVendas.length === 0) {
+        abrirHistorico();
+    } else {
+        aplicarFiltroHistorico();
+    }
+}
+
+function aplicarFiltroHistorico() {
+    const filtro = document.getElementById('hist-filtro').value;
+    const agora = new Date();
+    let inicio = null;
+
+    if (filtro === 'hoje') {
+        inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    } else if (filtro === 'semana') {
+        inicio = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (filtro === 'mes') {
+        inicio = new Date(agora.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+    // 'tudo' => inicio = null
+
+    const filtradas = historicoVendas.filter(v => {
+        if (!inicio) return true;
+        return new Date(v.data) >= inicio;
+    });
+
+    renderizarHistorico(filtradas);
+}
+
+function renderizarHistorico(vendas) {
+    const lista = document.getElementById('hist-lista');
+
+    // ---------- Resumo ----------
+    const ativas = vendas.filter(v => !v.anulada);
+    const totalVendas = ativas.length;
+    const totalFaturado = ativas.reduce((s, v) => s + (v.total || 0), 0);
+    const totalLucro = ativas.reduce((s, v) => s + (v.lucro || 0), 0);
+    const totalAnuladas = vendas.length - ativas.length;
+
+    document.getElementById('hist-total-vendas').textContent = totalVendas;
+    document.getElementById('hist-total-faturado').textContent = totalFaturado.toFixed(2) + ' Kz';
+    document.getElementById('hist-total-lucro').textContent = totalLucro.toFixed(2) + ' Kz';
+    document.getElementById('hist-total-anuladas').textContent = totalAnuladas;
+
+    // ---------- Lista ----------
+    if (vendas.length === 0) {
+        lista.innerHTML = `
+            <div class="text-center text-gray-500 py-8 border rounded-lg">
+                <i class="fa fa-inbox text-3xl mb-2 block"></i>
+                Sem vendas neste período
+            </div>`;
+        return;
+    }
+
+    lista.innerHTML = vendas.map(v => {
+        const data = new Date(v.data);
+        const dataStr = data.toLocaleDateString('pt-AO') + ' ' + data.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' });
+        const anulada = v.anulada === true;
+        const numRecibo = v.numRecibo || (v.id ? v.id.slice(-6) : '—');
+
+        // Resumo dos itens
+        let resumoItens = '';
+        if (Array.isArray(v.itens) && v.itens.length > 0) {
+            resumoItens = v.itens.map(i => `${i.quantidade}× ${escaparHTML(i.produtoNome)}`).join(', ');
+        } else if (v.produtoNome) {
+            resumoItens = `${v.quantidade}× ${escaparHTML(v.produtoNome)}`;
+        }
+
+        // Botão anular (só admin/gestor e só se não estiver anulada)
+        const podeAnular = !anulada && ['admin', 'gestor'].includes(tipoUtilizador);
+        const btnAnular = podeAnular
+            ? `<button onclick="anularVenda('${v.id}')" class="bg-red-500 text-white px-3 py-1 rounded-lg btn text-xs">
+                   <i class="fa fa-times mr-1"></i> Anular
+               </button>`
+            : (anulada ? `<span class="text-xs text-red-600 font-bold"><i class="fa fa-ban"></i> ANULADA</span>` : '');
+
+        return `
+            <div class="border rounded-lg p-3 ${anulada ? 'bg-red-50 opacity-70' : 'bg-white'}">
+                <div class="flex justify-between items-start mb-1">
+                    <div class="flex-1">
+                        <div class="font-bold text-sm">#${numRecibo} — ${v.total?.toFixed(2) || '0.00'} Kz</div>
+                        <div class="text-xs text-gray-500">${dataStr} • ${escaparHTML(v.operador || '—')}</div>
+                    </div>
+                    ${btnAnular}
+                </div>
+                <div class="text-xs text-gray-600 mt-1">${resumoItens}</div>
+                <div class="text-xs text-gray-400 mt-1">Pago: ${v.pago?.toFixed(2) || '0.00'} Kz • Troco: ${v.troco?.toFixed(2) || '0.00'} Kz</div>
+            </div>`;
+    }).join('');
+}
+
+      // ==========================================
+// 🔴 ANULAR VENDA (devolve stock)
+// ==========================================
+async function anularVenda(vendaId) {
+    // Confirmação dupla (operação sensível)
+    if (!confirm("Tem certeza que deseja ANULAR esta venda?\n\nO stock dos produtos será devolvido.")) {
+        return;
+    }
+
+    const venda = historicoVendas.find(v => v.id === vendaId);
+    if (!venda) return alert("❌ Venda não encontrada.");
+    if (venda.anulada) return alert("⚠️ Esta venda já foi anulada.");
+
+    // Verificar permissão
+    if (!['admin', 'gestor'].includes(tipoUtilizador)) {
+        return alert("❌ Sem permissão para anular vendas.");
+    }
+
+    const btn = document.querySelector(`button[onclick="anularVenda('${vendaId}')"]`);
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+    }
+
+    try {
+        // 🔒 Transação: devolver stock + marcar venda como anulada
+        await db.runTransaction(async (transaction) => {
+            const vendaRef = db.collection('vendas').doc(vendaId);
+
+            // Reler a venda para garantir estado atual
+            const vendaDoc = await transaction.get(vendaRef);
+            if (!vendaDoc.exists) throw new Error("Venda já não existe.");
+            if (vendaDoc.data().anulada) throw new Error("Venda já foi anulada por outro utilizador.");
+
+            // Determinar os itens (suporta formato antigo de 1 produto e novo multi-item)
+            let itens = [];
+            if (Array.isArray(venda.itens) && venda.itens.length > 0) {
+                itens = venda.itens;
+            } else if (venda.produtoId) {
+                itens = [{ produtoId: venda.produtoId, quantidade: venda.quantidade }];
+            }
+
+            // Devolver stock a cada produto
+            for (const item of itens) {
+                if (!item.produtoId) continue;
+
+                const prodRef = db.collection('produtos').doc(item.produtoId);
+                const prodDoc = await transaction.get(prodRef);
+
+                if (prodDoc.exists) {
+                    const stockAtual = prodDoc.data().stock || 0;
+                    transaction.update(prodRef, { stock: stockAtual + (item.quantidade || 0) });
+                }
+                // Se o produto já foi apagado, apenas ignoramos (não bloqueia a anulação)
+            }
+
+            // Marcar venda como anulada
+            transaction.update(vendaRef, {
+                anulada: true,
+                anuladaEm: new Date().toISOString(),
+                anuladaPor: utilizadorAtual.nome
+            });
+        });
+
+        alert("✅ Venda anulada e stock devolvido com sucesso!");
+
+        // Recarregar histórico e dados em background
+        await abrirHistorico();
+        carregarListaProdutos().catch(e => console.error(e));
+        carregarDadosDashboard().catch(e => console.error(e));
+
+    } catch (erro) {
+        alert("❌ Erro ao anular: " + erro.message);
+
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-times mr-1"></i> Anular';
+        }
+    }
+}
 
         async function gerarRelatorio(tipo) {
             const area = document.getElementById('area-relatorio');
