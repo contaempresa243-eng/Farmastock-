@@ -204,9 +204,19 @@
                     <button onclick="pararLeitorCodigo()" class="mt-2 w-full border py-2 rounded-lg btn">Fechar Leitor</button>
                 </div>
 
-                <div class="mb-4">
-                    <input type="text" id="pesquisar-prod" oninput="filtrarProdutos()" placeholder="Pesquisar por nome, lote ou código..." 
-                        class="w-full p-3 border rounded-lg">
+                <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+    <input type="text" id="pesquisar-prod" oninput="filtrarProdutos()" placeholder="Pesquisar por nome, lote ou código..." 
+        class="md:col-span-2 p-3 border rounded-lg">
+    <select id="filtro-categoria" onchange="filtrarProdutos()" class="p-3 border rounded-lg">
+        <option value="">Todas as categorias</option>
+        <option value="Analgésico">Analgésico</option>
+        <option value="Antibiótico">Antibiótico</option>
+        <option value="Anti-inflamatório">Anti-inflamatório</option>
+        <option value="Vitamina">Vitamina / Suplemento</option>
+        <option value="Higiene">Higiene</option>
+        <option value="Material Curativo">Material Curativo</option>
+        <option value="Outro">Outro</option>
+    </select>
                 </div>
 
                 <div class="overflow-x-auto border rounded-lg">
@@ -216,6 +226,7 @@
                                 <th class="text-left p-2">Código</th>
                                 <th class="text-left p-2">Nome</th>
                                 <th class="text-left p-2">Lote</th>
+                              <th class="text-left p-2">Categoria</th>
                                 <th class="text-left p-2">Validade</th>
                                 <th class="text-center p-2">Stock</th>
                                 <th class="text-right p-2">Custo</th>
@@ -225,7 +236,7 @@
                             </tr>
                         </thead>
                         <tbody id="tabela-produtos">
-                            <tr><td colspan="9" class="p-4 text-center text-gray-500">Carregando dados...</td></tr>
+                            <tr><td colspan="10" class="p-4 text-center text-gray-500">Carregando dados...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -476,6 +487,26 @@
                     <div><label class="block text-sm font-medium mb-1">Preço Venda (Kz) *</label>
                         <input type="number" step="0.01" min="0" id="prod-venda" required class="w-full p-2 border rounded-lg" oninput="calcularLucroProd()"></div>
                 </div>
+              <div>
+    <label class="block text-sm font-medium mb-1">Categoria *</label>
+    <select id="prod-categoria" required class="w-full p-2 border rounded-lg">
+        <option value="Analgésico">Analgésico</option>
+        <option value="Antibiótico">Antibiótico</option>
+        <option value="Anti-inflamatório">Anti-inflamatório</option>
+        <option value="Vitamina">Vitamina / Suplemento</option>
+        <option value="Higiene">Higiene</option>
+        <option value="Material Curativo">Material Curativo</option>
+        <option value="Outro">Outro</option>
+    </select>
+</div>
+<div>
+    <label class="block text-sm font-medium mb-1">Fornecedor Principal</label>
+    <input type="text" id="prod-fornecedor" class="w-full p-2 border rounded-lg" placeholder="Ex: Farmácia Central">
+</div>
+<div class="flex items-center gap-2 p-2 border rounded-lg">
+    <input type="checkbox" id="prod-receita" class="w-5 h-5">
+    <label for="prod-receita" class="text-sm font-medium">💊 Requer receita médica</label>
+</div>
                 <div class="bg-gray-50 p-2 rounded-lg">
                     <p class="text-sm">Lucro Unitário: <span id="prod-lucro" class="font-bold text-green-600">0 Kz</span></p>
                     <p class="text-xs text-gray-500">Margem: <span id="prod-margem">0%</span></p>
@@ -1110,8 +1141,9 @@ document.getElementById('form-entrada').addEventListener('submit', async (e) => 
                 return `
 <tr class="border-b">
     <td class="p-2 text-xs">${escaparHTML(p.codigo) || '—'}</td>
-    <td class="p-2">${escaparHTML(p.nome)}</td>
+    <td class="p-2">${escaparHTML(p.nome)}${p.receita ? ' <span title="Requer receita médica" class="text-red-600">💊</span>' : ''}</td>
     <td class="p-2">${escaparHTML(p.lote)}</td>
+    <td class="p-2 text-xs">${escaparHTML(p.categoria || 'Outro')}</td>
     <td class="p-2">${escaparHTML(p.validade)}</td>
     <td class="p-2 text-center ${alerta}">${p.stock}</td>
     <td class="p-2 text-right">${(p.custo||0).toFixed(2)} Kz</td>
@@ -1140,15 +1172,24 @@ document.getElementById('form-entrada').addEventListener('submit', async (e) => 
         }
 
         function filtrarProdutos() {
-            const termo = document.getElementById('pesquisar-prod').value.toLowerCase();
-            db.collection('produtos').get().then(snap => {
-                const filtrados = snap.docs.filter(d => {
-                    const p = d.data();
-                    return p.nome.toLowerCase().includes(termo) || p.lote.toLowerCase().includes(termo) || (p.codigo && p.codigo.toLowerCase().includes(termo));
-                });
-                preencherTabelaProdutos(filtrados);
-            });
-        }
+    const termo = document.getElementById('pesquisar-prod').value.toLowerCase();
+    const categoria = document.getElementById('filtro-categoria').value;
+
+    db.collection('produtos').get().then(snap => {
+        const filtrados = snap.docs.filter(d => {
+            const p = d.data();
+
+            const matchTexto = p.nome.toLowerCase().includes(termo)
+                || p.lote.toLowerCase().includes(termo)
+                || (p.codigo && p.codigo.toLowerCase().includes(termo));
+
+            const matchCategoria = !categoria || (p.categoria === categoria);
+
+            return matchTexto && matchCategoria;
+        });
+        preencherTabelaProdutos(filtrados);
+    });
+                      }
 
         async function abrirModalProduto(id = null, dados = null) {
     document.getElementById('modal-produto').classList.remove('hidden');
@@ -1174,28 +1215,41 @@ document.getElementById('form-entrada').addEventListener('submit', async (e) => 
     }
 
     if (dados) {
-        Object.keys(dados).forEach(k => {
-            const el = document.getElementById(`prod-${k}`);
-            if (el) el.value = dados[k];
-        });
-        calcularLucroProd();
-    }
+    Object.keys(dados).forEach(k => {
+        const el = document.getElementById(`prod-${k}`);
+        if (el) el.value = dados[k];
+    });
+
+    // Preencher campos especiais
+    document.getElementById('prod-categoria').value = dados.categoria || 'Outro';
+    document.getElementById('prod-fornecedor').value = dados.fornecedor || '';
+    document.getElementById('prod-receita').checked = dados.receita === true;
+
+    calcularLucroProd();
+} else {
+    // Novo produto: valores por omissão
+    document.getElementById('prod-categoria').value = 'Outro';
+    document.getElementById('prod-receita').checked = false;
+      }
       }
 
         document.getElementById('form-produto').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('prod-id').value;
             const dados = {
-                codigo: document.getElementById('prod-codigo').value.trim(),
-                nome: document.getElementById('prod-nome').value.trim(),
-                lote: document.getElementById('prod-lote').value.trim(),
-                validade: document.getElementById('prod-validade').value,
-                stock: parseInt(document.getElementById('prod-stock').value),
-                minimo: parseInt(document.getElementById('prod-minimo').value),
-                custo: parseFloat(document.getElementById('prod-custo').value),
-                venda: parseFloat(document.getElementById('prod-venda').value),
-                atualizadoEm: new Date().toISOString()
-            };
+    codigo: document.getElementById('prod-codigo').value.trim(),
+    nome: document.getElementById('prod-nome').value.trim(),
+    lote: document.getElementById('prod-lote').value.trim(),
+    validade: document.getElementById('prod-validade').value,
+    stock: parseInt(document.getElementById('prod-stock').value),
+    minimo: parseInt(document.getElementById('prod-minimo').value),
+    custo: parseFloat(document.getElementById('prod-custo').value),
+    venda: parseFloat(document.getElementById('prod-venda').value),
+    categoria: document.getElementById('prod-categoria').value || 'Outro',
+    fornecedor: document.getElementById('prod-fornecedor').value.trim() || null,
+    receita: document.getElementById('prod-receita').checked,
+    atualizadoEm: new Date().toISOString()
+};
 
             try {
                 if (id) await db.collection('produtos').doc(id).update(dados);
