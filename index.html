@@ -1466,33 +1466,39 @@ async function anularVenda(vendaId) {
             if (vendaDoc.data().anulada) throw new Error("Venda já foi anulada por outro utilizador.");
 
             // Determinar os itens (suporta formato antigo de 1 produto e novo multi-item)
-            let itens = [];
-            if (Array.isArray(venda.itens) && venda.itens.length > 0) {
-                itens = venda.itens;
-            } else if (venda.produtoId) {
-                itens = [{ produtoId: venda.produtoId, quantidade: venda.quantidade }];
-            }
+let itens = [];
+if (Array.isArray(venda.itens) && venda.itens.length > 0) {
+    itens = venda.itens;
+} else if (venda.produtoId) {
+    itens = [{ produtoId: venda.produtoId, quantidade: venda.quantidade }];
+}
 
-            // Devolver stock a cada produto
-            for (const item of itens) {
-                if (!item.produtoId) continue;
+// ---------- FASE 1: TODAS AS LEITURAS ----------
+const produtosLidos = [];
+for (const item of itens) {
+    if (!item.produtoId) {
+        produtosLidos.push(null);
+        continue;
+    }
+    const prodRef = db.collection('produtos').doc(item.produtoId);
+    const prodDoc = await transaction.get(prodRef);
+    produtosLidos.push({ ref: prodRef, doc: prodDoc, item: item });
+}
 
-                const prodRef = db.collection('produtos').doc(item.produtoId);
-                const prodDoc = await transaction.get(prodRef);
+// ---------- FASE 2: TODAS AS ESCRITAS ----------
+// Devolver stock a cada produto
+for (const p of produtosLidos) {
+    if (!p || !p.doc.exists) continue;
+    const stockAtual = p.doc.data().stock || 0;
+    transaction.update(p.ref, { stock: stockAtual + (p.item.quantidade || 0) });
+}
 
-                if (prodDoc.exists) {
-                    const stockAtual = prodDoc.data().stock || 0;
-                    transaction.update(prodRef, { stock: stockAtual + (item.quantidade || 0) });
-                }
-                // Se o produto já foi apagado, apenas ignoramos (não bloqueia a anulação)
-            }
-
-            // Marcar venda como anulada
-            transaction.update(vendaRef, {
-                anulada: true,
-                anuladaEm: new Date().toISOString(),
-                anuladaPor: utilizadorAtual.nome
-            });
+// Marcar venda como anulada
+transaction.update(vendaRef, {
+    anulada: true,
+    anuladaEm: new Date().toISOString(),
+    anuladaPor: utilizadorAtual.nome
+});
         });
 
         alert("✅ Venda anulada e stock devolvido com sucesso!");
