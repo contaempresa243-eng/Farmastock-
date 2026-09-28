@@ -809,6 +809,7 @@
         let tipoUtilizador = '';
         let leitorCodigo = null;
         let dadosRelatorio = null;
+      let tipoRelatorioAtual = null;
         let graficoVendas = null, graficoStock = null;
         let ultimoReciboTexto = '';
       let carrinho = [];
@@ -2485,6 +2486,7 @@ function partilharFechoWhatsApp() {
 }
 
         async function gerarRelatorio(tipo) {
+          tipoRelatorioAtual = tipo;
             const area = document.getElementById('area-relatorio');
             const titulo = document.getElementById('titulo-relatorio');
             const conteudo = document.getElementById('conteudo-relatorio');
@@ -2522,23 +2524,312 @@ function partilharFechoWhatsApp() {
         }
 
         function exportarPDF() {
-            if (!dadosRelatorio || dadosRelatorio.length === 0) return alert("Sem dados para exportar!");
-            const docDefinition = {
-                content: [
-                    { text: 'FarmaStock — Relatório', fontSize: 18, bold: true, margin: [0, 0, 0, 10] },
-                    { text: JSON.stringify(dadosRelatorio, null, 2) }
+    if (!dadosRelatorio || dadosRelatorio.length === 0) {
+        return alert("Sem dados para exportar!");
+    }
+
+    const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
+    const endereco = document.getElementById('config-endereco').value || 'Luanda, Angola';
+    const telefone = document.getElementById('config-telefone').value || '';
+    const agora = new Date().toLocaleString('pt-AO');
+
+    const titulo = document.getElementById('titulo-relatorio').textContent || 'Relatório';
+
+    const cabecalho = [
+        { text: farmaciaNome, style: 'farmacia' },
+        { text: `${endereco}${telefone ? ' • Tel: ' + telefone : ''}`, style: 'endereco' },
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#0F766E' }], margin: [0, 6, 0, 6] },
+        { text: titulo, style: 'titulo' },
+        { text: `Gerado em ${agora}`, style: 'data' }
+    ];
+
+    let tabela = null;
+    let resumo = [];
+
+    if (tipoRelatorioAtual === 'stock') {
+        const totalItems = dadosRelatorio.length;
+        const valorCusto = dadosRelatorio.reduce((s, p) => s + ((p.custo || 0) * (p.stock || 0)), 0);
+        const valorVenda = dadosRelatorio.reduce((s, p) => s + ((p.venda || 0) * (p.stock || 0)), 0);
+
+        resumo = [
+            { text: `Total de produtos: ${totalItems}`, style: 'resumo' },
+            { text: `Valor em stock (custo): ${valorCusto.toFixed(2)} Kz`, style: 'resumo' },
+            { text: `Valor em stock (venda): ${valorVenda.toFixed(2)} Kz`, style: 'resumo' }
+        ];
+
+        tabela = {
+            table: {
+                headerRows: 1,
+                widths: ['*', 'auto', 'auto', 'auto', 'auto', 'auto'],
+                body: [
+                    [
+                        { text: 'Produto', style: 'th' },
+                        { text: 'Lote', style: 'th' },
+                        { text: 'Validade', style: 'th' },
+                        { text: 'Stock', style: 'th', alignment: 'center' },
+                        { text: 'Custo', style: 'th', alignment: 'right' },
+                        { text: 'Venda', style: 'th', alignment: 'right' }
+                    ],
+                    ...dadosRelatorio.map(p => [
+                        p.nome || '—',
+                        p.lote || '—',
+                        p.validade || '—',
+                        String(p.stock || 0),
+                        `${(p.custo || 0).toFixed(2)}`,
+                        `${(p.venda || 0).toFixed(2)}`
+                    ])
                 ]
-            };
-            pdfMake.createPdf(docDefinition).download('relatorio-farmastock.pdf');
+            },
+            layout: 'lightHorizontalLines',
+            fontSize: 8
+        };
+    }
+    else if (tipoRelatorioAtual === 'vendas') {
+        const totalFaturado = dadosRelatorio.reduce((s, v) => s + (v.total || 0), 0);
+        const totalLucro = dadosRelatorio.reduce((s, v) => s + (v.lucro || 0), 0);
+
+        resumo = [
+            { text: `Nº de vendas: ${dadosRelatorio.length}`, style: 'resumo' },
+            { text: `Faturação total: ${totalFaturado.toFixed(2)} Kz`, style: 'resumo' },
+            { text: `Lucro total: ${totalLucro.toFixed(2)} Kz`, style: 'resumo' }
+        ];
+
+        const resumoProdutos = (v) => {
+            if (Array.isArray(v.itens) && v.itens.length > 0) {
+                return v.itens.map(i => `${i.quantidade}× ${i.produtoNome}`).join(', ');
+            }
+            return v.produtoNome ? `${v.quantidade}× ${v.produtoNome}` : '—';
+        };
+
+        tabela = {
+            table: {
+                headerRows: 1,
+                widths: ['auto', 'auto', 'auto', '*', 'auto', 'auto'],
+                body: [
+                    [
+                        { text: 'Data', style: 'th' },
+                        { text: 'Recibo', style: 'th' },
+                        { text: 'Operador', style: 'th' },
+                        { text: 'Produtos', style: 'th' },
+                        { text: 'Total', style: 'th', alignment: 'right' },
+                        { text: 'Lucro', style: 'th', alignment: 'right' }
+                    ],
+                    ...dadosRelatorio.map(v => {
+                        const d = new Date(v.data);
+                        const dataStr = d.toLocaleDateString('pt-AO') + ' ' + d.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' });
+                        return [
+                            dataStr,
+                            `#${v.numRecibo || '—'}`,
+                            v.operador || '—',
+                            resumoProdutos(v),
+                            `${(v.total || 0).toFixed(2)}`,
+                            `${(v.lucro || 0).toFixed(2)}`
+                        ];
+                    })
+                ]
+            },
+            layout: 'lightHorizontalLines',
+            fontSize: 8
+        };
+      }
+              else if (tipoRelatorioAtual === 'lucro') {
+        const totalFaturado = dadosRelatorio.reduce((s, v) => s + (v.total || 0), 0);
+        const totalLucro = dadosRelatorio.reduce((s, v) => s + (v.lucro || 0), 0);
+        const margem = totalFaturado > 0 ? ((totalLucro / totalFaturado) * 100).toFixed(1) : 0;
+
+        resumo = [
+            { text: `Faturação total: ${totalFaturado.toFixed(2)} Kz`, style: 'resumo' },
+            { text: `Lucro total: ${totalLucro.toFixed(2)} Kz`, style: 'resumo' },
+            { text: `Margem média: ${margem}%`, style: 'resumo' }
+        ];
+
+        tabela = {
+            table: {
+                headerRows: 1,
+                widths: ['*', 'auto', 'auto'],
+                body: [
+                    [
+                        { text: 'Venda / Data', style: 'th' },
+                        { text: 'Total', style: 'th', alignment: 'right' },
+                        { text: 'Lucro', style: 'th', alignment: 'right' }
+                    ],
+                    ...dadosRelatorio.map(v => [
+                        `${v.produtoNome || (v.itens ? v.itens.map(i => i.produtoNome).join(', ') : '—')} — ${new Date(v.data).toLocaleDateString('pt-AO')}`,
+                        `${(v.total || 0).toFixed(2)}`,
+                        `${(v.lucro || 0).toFixed(2)}`
+                    ])
+                ]
+            },
+            layout: 'lightHorizontalLines',
+            fontSize: 8
+        };
+    }
+    else if (tipoRelatorioAtual === 'validade') {
+        const hoje = new Date();
+        resumo = [
+            { text: `Produtos com validade próxima: ${dadosRelatorio.length}`, style: 'resumo' }
+        ];
+
+        tabela = {
+            table: {
+                headerRows: 1,
+                widths: ['*', 'auto', 'auto', 'auto', 'auto'],
+                body: [
+                    [
+                        { text: 'Produto', style: 'th' },
+                        { text: 'Lote', style: 'th' },
+                        { text: 'Validade', style: 'th' },
+                        { text: 'Dias restantes', style: 'th', alignment: 'center' },
+                        { text: 'Stock', style: 'th', alignment: 'center' }
+                    ],
+                    ...dadosRelatorio.map(p => {
+                        const dias = Math.ceil((new Date(p.validade) - hoje) / (1000 * 60 * 60 * 24));
+                        return [
+                            p.nome || '—',
+                            p.lote || '—',
+                            p.validade || '—',
+                            dias < 0 ? `Vencido` : `${dias} dias`,
+                            String(p.stock || 0)
+                        ];
+                    })
+                ]
+            },
+            layout: 'lightHorizontalLines',
+            fontSize: 8
+        };
+    }
+
+    const conteudo = [...cabecalho];
+    if (resumo.length > 0) {
+        conteudo.push({ stack: resumo, margin: [0, 0, 0, 10] });
+    }
+    if (tabela) {
+        conteudo.push(tabela);
+    }
+
+    conteudo.push({
+        text: `Documento gerado por FarmaStock — ${agora}`,
+        style: 'rodape',
+        margin: [0, 20, 0, 0]
+    });
+
+    const docDefinition = {
+        pageSize: 'A4',
+        pageMargins: [40, 40, 40, 40],
+        content: conteudo,
+        styles: {
+            farmacia: { fontSize: 16, bold: true, color: '#0F766E', alignment: 'center' },
+            endereco: { fontSize: 9, color: '#666', alignment: 'center' },
+            titulo: { fontSize: 13, bold: true, alignment: 'center', margin: [0, 4, 0, 2] },
+            data: { fontSize: 8, color: '#888', alignment: 'center', margin: [0, 0, 0, 8] },
+            resumo: { fontSize: 9, margin: [0, 1, 0, 1] },
+            th: { bold: true, fontSize: 8, fillColor: '#F0FDF4', color: '#0F766E' },
+            rodape: { fontSize: 7, color: '#999', alignment: 'center', italics: true }
         }
+    };
+
+    const nomeFicheiro = `relatorio-${tipoRelatorioAtual}-${new Date().toISOString().split('T')[0]}.pdf`;
+    pdfMake.createPdf(docDefinition).download(nomeFicheiro);
+      }
 
         function exportarExcel() {
-            if (!dadosRelatorio || dadosRelatorio.length === 0) return alert("Sem dados para exportar!");
-            const worksheet = XLSX.utils.json_to_sheet(dadosRelatorio);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Relatorio");
-            XLSX.writeFile(workbook, "relatorio-farmastock.xlsx");
+    if (!dadosRelatorio || dadosRelatorio.length === 0) {
+        return alert("Sem dados para exportar!");
+    }
+
+    const nomeFicheiro = `relatorio-${tipoRelatorioAtual}-${new Date().toISOString().split('T')[0]}.xlsx`;
+    const wb = XLSX.utils.book_new();
+    let ws = null;
+
+    if (tipoRelatorioAtual === 'stock') {
+        const linhas = dadosRelatorio.map(p => ({
+            'Produto': p.nome || '',
+            'Código': p.codigo || '',
+            'Lote': p.lote || '',
+            'Categoria': p.categoria || 'Outro',
+            'Validade': p.validade || '',
+            'Stock': p.stock || 0,
+            'Stock Mínimo': p.minimo || 0,
+            'Custo (Kz)': p.custo || 0,
+            'Venda (Kz)': p.venda || 0,
+            'Lucro Unit. (Kz)': (p.venda || 0) - (p.custo || 0),
+            'Valor Stock Custo (Kz)': (p.custo || 0) * (p.stock || 0),
+            'Valor Stock Venda (Kz)': (p.venda || 0) * (p.stock || 0),
+            'Fornecedor': p.fornecedor || '',
+            'Receita': p.receita ? 'Sim' : 'Não'
+        }));
+        ws = XLSX.utils.json_to_sheet(linhas);
+    }
+    else if (tipoRelatorioAtual === 'vendas') {
+        const linhas = dadosRelatorio.map(v => {
+            let resumo = '';
+            if (Array.isArray(v.itens) && v.itens.length > 0) {
+                resumo = v.itens.map(i => `${i.quantidade}× ${i.produtoNome}`).join(', ');
+            } else {
+                resumo = v.produtoNome ? `${v.quantidade}× ${v.produtoNome}` : '';
+            }
+            return {
+                'Data': new Date(v.data).toLocaleString('pt-AO'),
+                'Recibo': v.numRecibo || '',
+                'Operador': v.operador || '',
+                'Produtos': resumo,
+                'Total (Kz)': v.total || 0,
+                'Pago (Kz)': v.pago || 0,
+                'Troco (Kz)': v.troco || 0,
+                'Lucro (Kz)': v.lucro || 0,
+                'Anulada': v.anulada ? 'Sim' : 'Não'
+            };
+        });
+        ws = XLSX.utils.json_to_sheet(linhas);
+    }
+    else if (tipoRelatorioAtual === 'lucro') {
+        const linhas = dadosRelatorio.map(v => ({
+            'Data': new Date(v.data).toLocaleString('pt-AO'),
+            'Produtos': v.produtoNome || (v.itens ? v.itens.map(i => i.produtoNome).join(', ') : ''),
+            'Total (Kz)': v.total || 0,
+            'Custo (Kz)': (v.total || 0) - (v.lucro || 0),
+            'Lucro (Kz)': v.lucro || 0
+        }));
+        ws = XLSX.utils.json_to_sheet(linhas);
+    }
+    else if (tipoRelatorioAtual === 'validade') {
+        const hoje = new Date();
+        const linhas = dadosRelatorio.map(p => {
+            const dias = Math.ceil((new Date(p.validade) - hoje) / (1000 * 60 * 60 * 24));
+            return {
+                'Produto': p.nome || '',
+                'Lote': p.lote || '',
+                'Validade': p.validade || '',
+                'Dias Restantes': dias,
+                'Stock': p.stock || 0,
+                'Categoria': p.categoria || 'Outro',
+                'Fornecedor': p.fornecedor || ''
+            };
+        });
+        ws = XLSX.utils.json_to_sheet(linhas);
+      }
+              if (!ws) return alert("Tipo de relatório desconhecido.");
+
+    // Ajustar larguras de coluna
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    const colWidths = [];
+    for (let C = range.s.c; C <= range.e.c; C++) {
+        const colLetter = XLSX.utils.encode_col(C);
+        let maxLen = 10;
+        for (let R = range.s.r; R <= range.e.r; R++) {
+            const cell = ws[colLetter + (R + 1)];
+            if (cell && cell.v) {
+                const len = String(cell.v).length;
+                if (len > maxLen) maxLen = len;
+            }
         }
+        colWidths.push({ wch: Math.min(maxLen + 2, 40) });
+    }
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
+    XLSX.writeFile(wb, nomeFicheiro);
+          }
 
         async function carregarListaUtilizadores() {
             if (!['admin','gestor'].includes(tipoUtilizador)) return;
