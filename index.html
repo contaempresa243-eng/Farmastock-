@@ -162,6 +162,20 @@
                         <p class="text-2xl font-bold text-green-700" id="resumo-lucro-dia">0 Kz</p>
                     </div>
                 </div>
+              <div class="grid grid-cols-3 gap-3 mb-6">
+    <div class="bg-teal-50 p-3 rounded-lg border border-teal-200">
+        <p class="text-xs text-gray-500">Stock a Custo</p>
+        <p class="text-lg font-bold text-teal-700" id="resumo-valor-custo">0 Kz</p>
+    </div>
+    <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+        <p class="text-xs text-gray-500">Stock a Venda</p>
+        <p class="text-lg font-bold text-indigo-700" id="resumo-valor-venda">0 Kz</p>
+    </div>
+    <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+        <p class="text-xs text-gray-500">Lucro Potencial</p>
+        <p class="text-lg font-bold text-emerald-700" id="resumo-lucro-potencial">0 Kz</p>
+    </div>
+              </div>
 
                 <div class="grid md:grid-cols-2 gap-6 mb-6">
                     <div class="border rounded-lg p-4 bg-white">
@@ -1277,6 +1291,21 @@ aplicarPermissoes(tipoUtilizador);
         .filter(d => !d.data().anulada)
         .reduce((s, d) => s + (d.data().lucro || 0), 0);
     document.getElementById('resumo-lucro-dia').textContent = lucroDia.toFixed(2) + ' Kz';
+          
+          // 💰 Valor do stock em Kz
+let valorCusto = 0;
+let valorVenda = 0;
+produtosSnap.forEach(doc => {
+    const p = doc.data();
+    const stock = p.stock || 0;
+    valorCusto += (p.custo || 0) * stock;
+    valorVenda += (p.venda || 0) * stock;
+});
+const lucroPotencial = valorVenda - valorCusto;
+
+document.getElementById('resumo-valor-custo').textContent = valorCusto.toFixed(2) + ' Kz';
+document.getElementById('resumo-valor-venda').textContent = valorVenda.toFixed(2) + ' Kz';
+document.getElementById('resumo-lucro-potencial').textContent = lucroPotencial.toFixed(2) + ' Kz';
 
     renderizarListaVencer(listaVencer);
     renderizarListaRepor(listaRepor);
