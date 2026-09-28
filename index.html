@@ -1101,6 +1101,49 @@ async function entradaRapida(prodId) {
     sel.value = prodId;
     sel.dispatchEvent(new Event('change'));
       }
+      async function atualizarGraficos(disponivel, stockBaixo, esgotado) {
+    // ----- Gráfico de Stock (doughnut) -----
+    if (graficoStock) {
+        graficoStock.data.datasets[0].data = [disponivel, stockBaixo, esgotado];
+        graficoStock.update();
+    }
+
+    // ----- Gráfico de Vendas dos últimos 7 dias -----
+    try {
+        const vendasSnap = await db.collection('vendas').get();
+        const labels = [];
+        const totais = [];
+        const nomesDias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+        for (let i = 6; i >= 0; i--) {
+            const dia = new Date();
+            dia.setHours(0, 0, 0, 0);
+            dia.setDate(dia.getDate() - i);
+
+            const diaStr = new Date(dia.getTime() - dia.getTimezoneOffset() * 60000)
+                             .toISOString().split('T')[0];
+
+            const total = vendasSnap.docs
+                .filter(d => {
+                    const v = d.data();
+                    return !v.anulada && (v.data || '').startsWith(diaStr);
+                })
+                .reduce((s, d) => s + (d.data().total || 0), 0);
+
+            labels.push(nomesDias[dia.getDay()] + ' ' + dia.getDate());
+            totais.push(total);
+        }
+
+        if (graficoVendas) {
+            graficoVendas.data.labels = labels;
+            graficoVendas.data.datasets[0].data = totais;
+            graficoVendas.update();
+        }
+    } catch (e) {
+        console.error("Erro ao atualizar gráfico de vendas:", e);
+    }
+}
+
         function inicializarGraficos() {
             if (graficoVendas) graficoVendas.destroy();
             if (graficoStock) graficoStock.destroy();
