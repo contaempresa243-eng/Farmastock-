@@ -2277,6 +2277,213 @@ async function carregarFechoCaixa() {
     }
 }
 
+      // ==========================================
+// 🖨️ IMPRESSÃO / PARTILHA DO FECHO
+// ==========================================
+function imprimirFecho() {
+    if (!dadosFechoAtual) return alert("Gere o fecho primeiro!");
+
+    const d = dadosFechoAtual;
+    const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
+    const endereco = document.getElementById('config-endereco').value || 'Luanda, Angola';
+    const telefone = document.getElementById('config-telefone').value || '';
+
+    const dataObj = new Date(d.data + 'T12:00:00');
+    const dataExtenso = dataObj.toLocaleDateString('pt-AO', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    // Linhas de operadores
+    const opsEntries = Object.entries(d.porOperador).sort((a, b) => b[1].faturado - a[1].faturado);
+    const linhasOps = opsEntries.length === 0
+        ? '<tr><td colspan="4" style="text-align:center;padding:8px;">Sem vendas</td></tr>'
+        : opsEntries.map(([nome, o]) => `
+            <tr>
+                <td>${nome}</td>
+                <td style="text-align:center;">${o.vendas}</td>
+                <td style="text-align:right;">${o.faturado.toFixed(2)} Kz</td>
+                <td style="text-align:right;">${o.lucro.toFixed(2)} Kz</td>
+            </tr>`).join('');
+
+    // Linhas de produtos
+    const linhasProd = d.topProdutos.length === 0
+        ? '<tr><td colspan="3" style="text-align:center;padding:8px;">Sem produtos</td></tr>'
+        : d.topProdutos.map(p => `
+            <tr>
+                <td>${p.nome}</td>
+                <td style="text-align:center;">${p.qtd}</td>
+                <td style="text-align:right;">${p.faturado.toFixed(2)} Kz</td>
+            </tr>`).join('');
+
+    const html = `
+        <html>
+        <head>
+            <title>Fecho de Caixa — ${dataExtenso}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; color: #222; max-width: 800px; margin: 0 auto; }
+                h1 { text-align: center; margin: 0; font-size: 22px; color: #0F766E; }
+                h2 { text-align: center; margin: 4px 0; font-size: 14px; font-weight: normal; color: #555; }
+                h3 { text-align: center; margin: 12px 0; font-size: 16px; }
+                .linha { border-top: 2px solid #0F766E; margin: 10px 0; }
+                table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+                th { background: #f0f0f0; padding: 8px; text-align: left; border-bottom: 1px solid #ccc; }
+                td { padding: 6px 8px; border-bottom: 1px solid #eee; }
+                .totais { display: flex; justify-content: space-between; margin: 16px 0; gap: 8px; }
+                .totais > div { flex: 1; text-align: center; border: 1px solid #ccc; padding: 8px; border-radius: 4px; }
+                .totais .label { font-size: 10px; color: #666; text-transform: uppercase; }
+                .totais .valor { font-size: 16px; font-weight: bold; color: #0F766E; margin-top: 2px; }
+                .destaque { background: #F0FDF4; border: 2px solid #0F766E; padding: 12px; margin: 16px 0; }
+                .destaque table { margin: 0; }
+                .destaque td { padding: 4px; border: none; }
+                .assinaturas { display: flex; justify-content: space-around; margin-top: 60px; gap: 40px; }
+                .assinatura { flex: 1; text-align: center; }
+                .assinatura .linha-ass { border-top: 1px solid #333; margin-top: 50px; padding-top: 4px; font-size: 11px; }
+                .rodape { text-align: center; font-size: 10px; color: #888; margin-top: 30px; }
+            </style>
+        </head>
+        <body>
+            <h1>${farmaciaNome}</h1>
+            <h2>${endereco}${telefone ? ' • Tel: ' + telefone : ''}</h2>
+            <div class="linha"></div>
+            <h3>FECHO DE CAIXA</h3>
+            <p style="text-align:center;font-size:13px;color:#444;margin:0;">${dataExtenso}</p>
+
+            <div class="totais">
+                <div>
+                    <div class="label">Nº de Vendas</div>
+                    <div class="valor">${d.totalVendas}</div>
+                </div>
+                <div>
+                    <div class="label">Faturação</div>
+                    <div class="valor">${d.totalFaturado.toFixed(2)} Kz</div>
+                </div>
+                <div>
+                    <div class="label">Lucro</div>
+                    <div class="valor">${d.totalLucro.toFixed(2)} Kz</div>
+                </div>
+                <div>
+                    <div class="label">Anuladas</div>
+                    <div class="valor">${d.totalAnuladas}</div>
+                </div>
+            </div>
+
+            <div class="destaque">
+                <table>
+                    <tr>
+                        <td><strong>Total Entregue:</strong></td>
+                        <td style="text-align:right;">${d.totalPago.toFixed(2)} Kz</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Trocado:</strong></td>
+                        <td style="text-align:right;">${d.totalTroco.toFixed(2)} Kz</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Faturação Líquida:</strong></td>
+                        <td style="text-align:right;font-size:16px;color:#0F766E;"><strong>${d.liquido.toFixed(2)} Kz</strong></td>
+                    </tr>
+                </table>
+            </div>
+
+            <h3 style="text-align:left;font-size:14px;">Vendas por Operador</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Operador</th>
+                        <th style="text-align:center;">Vendas</th>
+                        <th style="text-align:right;">Faturação</th>
+                        <th style="text-align:right;">Lucro</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhasOps}
+                </tbody>
+            </table>
+
+            <h3 style="text-align:left;font-size:14px;">Produtos Mais Vendidos</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th style="text-align:center;">Qtd</th>
+                        <th style="text-align:right;">Faturação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${linhasProd}
+                </tbody>
+            </table>
+
+            <div class="assinaturas">
+                <div class="assinatura">
+                    <div class="linha-ass">Operador de Caixa</div>
+                </div>
+                <div class="assinatura">
+                    <div class="linha-ass">Gerente / Supervisor</div>
+                </div>
+            </div>
+
+            <div class="rodape">
+                Documento gerado por FarmaStock em ${new Date().toLocaleString('pt-AO')}
+            </div>
+        </body>
+        </html>
+    `;
+
+    const janela = window.open('', '', 'width=800,height=900');
+    janela.document.write(html);
+    janela.document.close();
+    janela.focus();
+    setTimeout(() => {
+        janela.print();
+    }, 300);
+}
+
+function partilharFechoWhatsApp() {
+    if (!dadosFechoAtual) return alert("Gere o fecho primeiro!");
+
+    const d = dadosFechoAtual;
+    const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
+    const dataObj = new Date(d.data + 'T12:00:00');
+    const dataExtenso = dataObj.toLocaleDateString('pt-AO', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+
+    let texto = `📊 *FECHO DE CAIXA*\n`;
+    texto += `*${farmaciaNome}*\n`;
+    texto += `${dataExtenso}\n`;
+    texto += `━━━━━━━━━━━━━━━━━━\n\n`;
+    texto += `🛒 Vendas: *${d.totalVendas}*\n`;
+    texto += `💰 Faturação: *${d.totalFaturado.toFixed(2)} Kz*\n`;
+    texto += `📈 Lucro: *${d.totalLucro.toFixed(2)} Kz*\n`;
+    texto += `❌ Anuladas: *${d.totalAnuladas}*\n`;
+    texto += `━━━━━━━━━━━━━━━━━━\n\n`;
+    texto += `💵 *CAIXA*\n`;
+    texto += `Entregue: ${d.totalPago.toFixed(2)} Kz\n`;
+    texto += `Trocado: ${d.totalTroco.toFixed(2)} Kz\n`;
+    texto += `Líquido: *${d.liquido.toFixed(2)} Kz*\n`;
+    texto += `━━━━━━━━━━━━━━━━━━\n\n`;
+
+    const opsEntries = Object.entries(d.porOperador).sort((a, b) => b[1].faturado - a[1].faturado);
+    if (opsEntries.length > 0) {
+        texto += `👤 *POR OPERADOR*\n`;
+        opsEntries.forEach(([nome, o]) => {
+            texto += `${nome}: ${o.vendas} vendas • ${o.faturado.toFixed(2)} Kz\n`;
+        });
+        texto += `\n`;
+    }
+
+    if (d.topProdutos.length > 0) {
+        texto += `🏆 *TOP PRODUTOS*\n`;
+        d.topProdutos.slice(0, 5).forEach((p, i) => {
+            texto += `${i + 1}. ${p.nome} — ${p.qtd}×\n`;
+        });
+    }
+
+    texto += `\n_Gerado por FarmaStock_`;
+
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
+}
+
         async function gerarRelatorio(tipo) {
             const area = document.getElementById('area-relatorio');
             const titulo = document.getElementById('titulo-relatorio');
