@@ -1095,8 +1095,14 @@ function renderizarListaRepor(lista) {
 }
 
 async function entradaRapida(prodId) {
-    abrirModalEntrada();
-    await new Promise(r => setTimeout(r, 300));
+    // Preencher o select PRIMEIRO, só depois abrir o modal
+    await preencherSelectEntrada();
+
+    document.getElementById('modal-entrada').classList.remove('hidden');
+    document.getElementById('form-entrada').reset();
+    document.getElementById('entrada-preview').textContent = '0.00 Kz';
+    document.getElementById('entrada-stock-atual').textContent = 'Stock atual: —';
+
     const sel = document.getElementById('entrada-produto');
     sel.value = prodId;
     sel.dispatchEvent(new Event('change'));
