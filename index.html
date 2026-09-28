@@ -327,6 +327,10 @@
         </div>
     </div>
 
+                      <div class="mb-3">
+    <label class="block text-sm font-medium mb-1">NIF do Cliente <span class="text-xs text-gray-400">(opcional, para fatura)</span></label>
+    <input type="text" id="venda-nif" class="w-full p-2 border rounded-lg" placeholder="Ex: 5001234567" maxlength="20">
+                      </div>
     <!-- Pagamento -->
     <div class="grid grid-cols-2 gap-3 mb-3">
         <div>
@@ -1944,7 +1948,7 @@ function atualizarTroco() {
 
     const total = totalCarrinho();
     const pago = parseFloat(document.getElementById('venda-pago').value) || 0;
-
+const nif = document.getElementById('venda-nif').value.trim();
     if (pago < total) {
         return alert(`❌ O valor pago (${pago.toFixed(2)} Kz) é inferior ao total (${total.toFixed(2)} Kz).`);
     }
@@ -1994,9 +1998,10 @@ function atualizarTroco() {
                 troco: pago - total,
                 lucro: itensVenda.reduce((s, i) => s + ((i.precoUnit - i.custoUnit) * i.quantidade), 0),
                 data: new Date().toISOString(),
-                operador: utilizadorAtual.nome,
-                numRecibo: numRecibo
-            };
+                    operador: utilizadorAtual.nome,
+    numRecibo: numRecibo,
+    nifCliente: nif || null
+};
 
             const vendaRef = db.collection('vendas').doc();
             transaction.set(vendaRef, venda);
@@ -2027,6 +2032,7 @@ function atualizarTroco() {
     carrinho = [];
     renderizarCarrinho();
     document.getElementById('venda-pago').value = '';
+          document.getElementById('venda-nif').value = '';
     document.getElementById('venda-troco').value = '';
 
     if (btn) {
@@ -2058,6 +2064,9 @@ function gerarRecibo(venda) {
     texto += `TOTAL: ${venda.total.toFixed(2)} Kz\n`;
     texto += `Pago: ${venda.pago.toFixed(2)} Kz\n`;
     texto += `Troco: ${venda.troco.toFixed(2)} Kz\n`;
+  if (venda.nifCliente) {
+    texto += `NIF: ${venda.nifCliente}\n`;
+      }
     texto += `Operador: ${venda.operador}\n`;
     texto += `Data: ${new Date(venda.data).toLocaleString()}\n`;
     texto += '------------------\n';
@@ -2073,6 +2082,9 @@ function gerarRecibo(venda) {
                  ${i.quantidade} × ${i.precoUnit.toFixed(2)} = <strong>${i.subtotal.toFixed(2)} Kz</strong></p>`;
     });
     html += '<hr class="my-2">';
+  if (venda.nifCliente) {
+    html += `<p><strong>NIF:</strong> ${escaparHTML(venda.nifCliente)}</p>`;
+      }
     html += `<p><strong>Total:</strong> ${venda.total.toFixed(2)} Kz</p>`;
     html += `<p><strong>Pago:</strong> ${venda.pago.toFixed(2)} Kz</p>`;
     html += `<p><strong>Troco:</strong> ${venda.troco.toFixed(2)} Kz</p>`;
