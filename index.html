@@ -362,38 +362,188 @@
             </section>
 
             <!-- 📄 RELATÓRIOS -->
-            <section id="relatorios" class="secao">
-                <h2 class="text-2xl font-bold mb-4">Relatórios e Exportação</h2>
-                <div class="grid md:grid-cols-2 gap-4 mb-6">
-                    <button onclick="gerarRelatorio('stock')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
-                        <i class="fa fa-cubes text-primary text-xl mr-2"></i> Stock Completo
-                    </button>
-                    <button onclick="gerarRelatorio('vendas')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
-                        <i class="fa fa-shopping-cart text-pdv text-xl mr-2"></i> Histórico de Vendas
-                    </button>
-                    <button onclick="gerarRelatorio('lucro')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
-                        <i class="fa fa-line-chart text-success text-xl mr-2"></i> Lucro e Margem
-                    </button>
-                    <button onclick="gerarRelatorio('validade')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
-                        <i class="fa fa-calendar-times-o text-danger text-xl mr-2"></i> Controlo de Validades
-                    </button>
-                </div>
+<section id="relatorios" class="secao">
+    <h2 class="text-2xl font-bold mb-4">Relatórios e Exportação</h2>
 
-                <div id="area-relatorio" class="border rounded-lg p-4 bg-gray-50 hidden">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 id="titulo-relatorio" class="font-bold text-lg">Relatório</h3>
-                        <div class="flex gap-2">
-                            <button onclick="exportarPDF()" class="bg-danger text-white px-3 py-1 rounded-lg text-sm btn">
-                                <i class="fa fa-file-pdf-o"></i> PDF
-                            </button>
-                            <button onclick="exportarExcel()" class="bg-green-600 text-white px-3 py-1 rounded-lg text-sm btn">
-                                <i class="fa fa-file-excel-o"></i> Excel
-                            </button>
-                        </div>
-                    </div>
-                    <div id="conteudo-relatorio" class="bg-white p-4 rounded border text-sm max-h-[500px] overflow-auto"></div>
-                </div>
-            </section>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+        <button onclick="gerarRelatorio('stock')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
+            <i class="fa fa-cubes text-primary text-xl mr-2"></i> Stock Completo
+        </button>
+        <button onclick="gerarRelatorio('vendas')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
+            <i class="fa fa-shopping-cart text-pdv text-xl mr-2"></i> Histórico de Vendas
+        </button>
+        <button onclick="gerarRelatorio('lucro')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
+            <i class="fa fa-line-chart text-success text-xl mr-2"></i> Lucro e Margem
+        </button>
+        <button onclick="gerarRelatorio('validade')" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
+            <i class="fa fa-calendar-times-o text-danger text-xl mr-2"></i> Controlo de Validades
+        </button>
+        <button onclick="abrirRanking()" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
+            <i class="fa fa-trophy text-warning text-xl mr-2"></i> Produtos Mais Vendidos
+        </button>
+        <button onclick="abrirLucroPeriodo()" class="border p-4 rounded-lg text-left hover:bg-gray-50 btn">
+            <i class="fa fa-area-chart text-admin text-xl mr-2"></i> Lucro por Período
+        </button>
+    </div>
+
+    <!-- Relatórios clássicos (Stock/Vendas/Lucro/Validade) -->
+    <div id="area-relatorio" class="border rounded-lg p-4 bg-gray-50 hidden">
+        <div class="flex justify-between items-center mb-3">
+            <h3 id="titulo-relatorio" class="font-bold text-lg">Relatório</h3>
+            <div class="flex gap-2">
+                <button onclick="exportarPDF()" class="bg-danger text-white px-3 py-1 rounded-lg text-sm btn">
+                    <i class="fa fa-file-pdf-o"></i> PDF
+                </button>
+                <button onclick="exportarExcel()" class="bg-green-600 text-white px-3 py-1 rounded-lg text-sm btn">
+                    <i class="fa fa-file-excel-o"></i> Excel
+                </button>
+            </div>
+        </div>
+        <div id="conteudo-relatorio" class="bg-white p-4 rounded border text-sm max-h-[500px] overflow-auto"></div>
+    </div>
+
+    <!-- 🏆 Produtos Mais Vendidos -->
+    <div id="area-ranking" class="border rounded-lg p-4 bg-gray-50 hidden">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+                <i class="fa fa-trophy text-warning"></i> Produtos Mais Vendidos
+            </h3>
+            <div class="flex gap-2 flex-wrap">
+                <select id="ranking-filtro" onchange="carregarRanking()" class="border p-2 rounded-lg text-sm">
+                    <option value="hoje">Hoje</option>
+                    <option value="semana" selected>Últimos 7 dias</option>
+                    <option value="mes">Últimos 30 dias</option>
+                    <option value="ano">Este ano</option>
+                    <option value="tudo">Tudo</option>
+                </select>
+                <button onclick="carregarRanking()" class="bg-primary text-white px-3 py-2 rounded-lg btn text-sm">
+                    <i class="fa fa-refresh mr-1"></i> Atualizar
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div class="bg-blue-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Produtos Vendidos</p>
+                <p class="text-xl font-bold text-blue-700" id="ranking-total-prod">0</p>
+            </div>
+            <div class="bg-green-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Unidades</p>
+                <p class="text-xl font-bold text-green-700" id="ranking-total-qtd">0</p>
+            </div>
+            <div class="bg-purple-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Faturação</p>
+                <p class="text-xl font-bold text-purple-700" id="ranking-total-fat">0 Kz</p>
+            </div>
+            <div class="bg-amber-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Lucro</p>
+                <p class="text-xl font-bold text-amber-700" id="ranking-total-lucro">0 Kz</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded border mb-4">
+            <h4 class="font-bold text-sm mb-2">Top 5</h4>
+            <canvas id="grafico-ranking" height="120"></canvas>
+        </div>
+
+        <div class="bg-white rounded border overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="text-center p-2 w-12">#</th>
+                        <th class="text-left p-2">Produto</th>
+                        <th class="text-center p-2">Qtd</th>
+                        <th class="text-right p-2">Faturação</th>
+                        <th class="text-right p-2">Lucro</th>
+                    </tr>
+                </thead>
+                <tbody id="ranking-tabela">
+                    <tr><td colspan="5" class="p-4 text-center text-gray-500">A carregar...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex gap-2 mt-3">
+            <button onclick="exportarRankingPDF()" class="flex-1 bg-danger text-white py-2 rounded-lg btn text-sm">
+                <i class="fa fa-file-pdf-o mr-1"></i> PDF
+            </button>
+            <button onclick="exportarRankingExcel()" class="flex-1 bg-green-600 text-white py-2 rounded-lg btn text-sm">
+                <i class="fa fa-file-excel-o mr-1"></i> Excel
+            </button>
+        </div>
+    </div>
+
+    <!-- 📈 Lucro por Período -->
+    <div id="area-lucro-periodo" class="border rounded-lg p-4 bg-gray-50 hidden">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+                <i class="fa fa-area-chart text-admin"></i> Lucro por Período
+            </h3>
+            <div class="flex gap-2 flex-wrap">
+                <select id="lucro-filtro" onchange="carregarLucroPeriodo()" class="border p-2 rounded-lg text-sm">
+                    <option value="7">Últimos 7 dias</option>
+                    <option value="30" selected>Últimos 30 dias</option>
+                    <option value="90">Últimos 90 dias</option>
+                    <option value="365">Últimos 12 meses</option>
+                </select>
+                <button onclick="carregarLucroPeriodo()" class="bg-primary text-white px-3 py-2 rounded-lg btn text-sm">
+                    <i class="fa fa-refresh mr-1"></i> Atualizar
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div class="bg-green-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Lucro Total</p>
+                <p class="text-xl font-bold text-green-700" id="lp-total-lucro">0 Kz</p>
+            </div>
+            <div class="bg-blue-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Faturação</p>
+                <p class="text-xl font-bold text-blue-700" id="lp-total-fat">0 Kz</p>
+            </div>
+            <div class="bg-purple-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Margem Média</p>
+                <p class="text-xl font-bold text-purple-700" id="lp-margem">0%</p>
+            </div>
+            <div class="bg-amber-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Melhor Dia</p>
+                <p class="text-base font-bold text-amber-700" id="lp-melhor-dia">—</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded border mb-4">
+            <h4 class="font-bold text-sm mb-2">Evolução do Lucro</h4>
+            <canvas id="grafico-lucro-periodo" height="120"></canvas>
+        </div>
+
+        <div class="bg-white rounded border overflow-x-auto max-h-80">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b sticky top-0">
+                    <tr>
+                        <th class="text-left p-2">Data</th>
+                        <th class="text-center p-2">Vendas</th>
+                        <th class="text-right p-2">Faturação</th>
+                        <th class="text-right p-2">Lucro</th>
+                        <th class="text-right p-2">Margem</th>
+                    </tr>
+                </thead>
+                <tbody id="lp-tabela">
+                    <tr><td colspan="5" class="p-4 text-center text-gray-500">A carregar...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex gap-2 mt-3">
+            <button onclick="exportarLucroPeriodoPDF()" class="flex-1 bg-danger text-white py-2 rounded-lg btn text-sm">
+                <i class="fa fa-file-pdf-o mr-1"></i> PDF
+            </button>
+            <button onclick="exportarLucroPeriodoExcel()" class="flex-1 bg-green-600 text-white py-2 rounded-lg btn text-sm">
+                <i class="fa fa-file-excel-o mr-1"></i> Excel
+            </button>
+        </div>
+    </div>
+
+</section>
 
           <!-- 📜 HISTÓRICO DE VENDAS -->
 <section id="historico" class="secao">
@@ -2134,6 +2284,333 @@ transaction.update(vendaRef, {
 // 💰 FECHO DE CAIXA
 // ==========================================
 let dadosFechoAtual = null;  // guarda para o imprimir/partilhar
+
+      // ==========================================
+// 🏆 RANKING DE PRODUTOS + 📈 LUCRO POR PERÍODO
+// ==========================================
+let graficoRanking = null;
+let dadosRankingAtual = null;
+let graficoLucroPeriodo = null;
+let dadosLucroPeriodoAtual = null;
+
+function inicioPeriodo(valor) {
+    const agora = new Date();
+    if (valor === 'hoje') return new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+    if (valor === 'semana') return new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000);
+    if (valor === 'mes') return new Date(agora.getTime() - 30 * 24 * 60 * 60 * 1000);
+    if (valor === 'ano') return new Date(agora.getFullYear(), 0, 1);
+    return null;
+}
+
+function esconderAreasRelatorio() {
+    ['area-relatorio', 'area-ranking', 'area-lucro-periodo'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+}
+
+async function abrirRanking() {
+    esconderAreasRelatorio();
+    document.getElementById('area-ranking').classList.remove('hidden');
+    await carregarRanking();
+}
+
+async function carregarRanking() {
+    const filtro = document.getElementById('ranking-filtro').value;
+    const inicio = inicioPeriodo(filtro);
+    const tbody = document.getElementById('ranking-tabela');
+    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">A carregar...</td></tr>';
+
+    try {
+        const snap = await db.collection('vendas').get();
+        const porProduto = {};
+
+        snap.docs.forEach(d => {
+            const v = d.data();
+            if (v.anulada) return;
+            if (inicio && new Date(v.data) < inicio) return;
+
+            if (Array.isArray(v.itens) && v.itens.length > 0) {
+                v.itens.forEach(i => {
+                    const nome = i.produtoNome || 'Desconhecido';
+                    if (!porProduto[nome]) porProduto[nome] = { qtd: 0, faturado: 0, lucro: 0 };
+                    porProduto[nome].qtd += i.quantidade || 0;
+                    porProduto[nome].faturado += (i.subtotal || 0);
+                    porProduto[nome].lucro += ((i.precoUnit - i.custoUnit) * i.quantidade) || 0;
+                });
+            } else if (v.produtoNome) {
+                const nome = v.produtoNome;
+                if (!porProduto[nome]) porProduto[nome] = { qtd: 0, faturado: 0, lucro: 0 };
+                porProduto[nome].qtd += v.quantidade || 0;
+                porProduto[nome].faturado += v.total || 0;
+                porProduto[nome].lucro += v.lucro || 0;
+            }
+        });
+
+        const lista = Object.entries(porProduto)
+            .map(([nome, d]) => ({ nome, ...d }))
+            .sort((a, b) => b.qtd - a.qtd);
+
+        dadosRankingAtual = lista;
+
+        const totalProd = lista.length;
+        const totalQtd = lista.reduce((s, p) => s + p.qtd, 0);
+        const totalFat = lista.reduce((s, p) => s + p.faturado, 0);
+        const totalLucro = lista.reduce((s, p) => s + p.lucro, 0);
+
+        document.getElementById('ranking-total-prod').textContent = totalProd;
+        document.getElementById('ranking-total-qtd').textContent = totalQtd;
+        document.getElementById('ranking-total-fat').textContent = totalFat.toFixed(2) + ' Kz';
+        document.getElementById('ranking-total-lucro').textContent = totalLucro.toFixed(2) + ' Kz';
+
+        // Gráfico top 5
+        const top5 = lista.slice(0, 5);
+        if (graficoRanking) graficoRanking.destroy();
+        const ctx = document.getElementById('grafico-ranking').getContext('2d');
+        graficoRanking = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: top5.map(p => p.nome.length > 20 ? p.nome.slice(0, 20) + '…' : p.nome),
+                datasets: [{
+                    label: 'Unidades',
+                    data: top5.map(p => p.qtd),
+                    backgroundColor: '#F59E0B'
+                }]
+            },
+            options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+        });
+
+        if (lista.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Sem vendas neste período</td></tr>';
+            return;
+        }
+
+        const medalhas = ['🥇', '🥈', '🥉'];
+        tbody.innerHTML = lista.map((p, i) => {
+            const medalha = medalhas[i] || String(i + 1);
+            const destaque = i < 3 ? 'font-bold bg-amber-50' : '';
+            return `
+                <tr class="border-b ${destaque}">
+                    <td class="p-2 text-center">${medalha}</td>
+                    <td class="p-2">${escaparHTML(p.nome)}</td>
+                    <td class="p-2 text-center font-bold">${p.qtd}</td>
+                    <td class="p-2 text-right">${p.faturado.toFixed(2)} Kz</td>
+                    <td class="p-2 text-right text-green-700">${p.lucro.toFixed(2)} Kz</td>
+                </tr>`;
+        }).join('');
+
+    } catch (e) {
+        console.error("Erro no ranking:", e);
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Erro: ${e.message}</td></tr>`;
+    }
+}
+
+async function abrirLucroPeriodo() {
+    esconderAreasRelatorio();
+    document.getElementById('area-lucro-periodo').classList.remove('hidden');
+    await carregarLucroPeriodo();
+}
+
+async function carregarLucroPeriodo() {
+    const dias = parseInt(document.getElementById('lucro-filtro').value) || 30;
+    const inicio = new Date(Date.now() - dias * 24 * 60 * 60 * 1000);
+    const tbody = document.getElementById('lp-tabela');
+    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">A carregar...</td></tr>';
+
+    try {
+        const snap = await db.collection('vendas').get();
+        const porDia = {};
+
+        snap.docs.forEach(d => {
+            const v = d.data();
+            if (v.anulada) return;
+            if (new Date(v.data) < inicio) return;
+
+            const dia = (v.data || '').split('T')[0];
+            if (!porDia[dia]) porDia[dia] = { vendas: 0, faturado: 0, lucro: 0 };
+            porDia[dia].vendas++;
+            porDia[dia].faturado += v.total || 0;
+            porDia[dia].lucro += v.lucro || 0;
+        });
+
+        const lista = Object.entries(porDia)
+            .map(([dia, d]) => ({ dia, ...d }))
+            .sort((a, b) => a.dia.localeCompare(b.dia));
+
+        dadosLucroPeriodoAtual = lista;
+
+        const totalLucro = lista.reduce((s, d) => s + d.lucro, 0);
+        const totalFat = lista.reduce((s, d) => s + d.faturado, 0);
+        const margem = totalFat > 0 ? (totalLucro / totalFat) * 100 : 0;
+        const melhor = lista.reduce((m, d) => (d.lucro > (m?.lucro || -Infinity) ? d : m), null);
+
+        document.getElementById('lp-total-lucro').textContent = totalLucro.toFixed(2) + ' Kz';
+        document.getElementById('lp-total-fat').textContent = totalFat.toFixed(2) + ' Kz';
+        document.getElementById('lp-margem').textContent = margem.toFixed(1) + '%';
+        document.getElementById('lp-melhor-dia').textContent = melhor
+            ? `${new Date(melhor.dia + 'T12:00:00').toLocaleDateString('pt-AO', { day: '2-digit', month: 'short' })} (${melhor.lucro.toFixed(0)} Kz)`
+            : '—';
+
+        if (graficoLucroPeriodo) graficoLucroPeriodo.destroy();
+        const ctx = document.getElementById('grafico-lucro-periodo').getContext('2d');
+        graficoLucroPeriodo = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: lista.map(d => new Date(d.dia + 'T12:00:00').toLocaleDateString('pt-AO', { day: '2-digit', month: '2-digit' })),
+                datasets: [{
+                    label: 'Lucro (Kz)',
+                    data: lista.map(d => d.lucro),
+                    borderColor: '#7C3AED',
+                    backgroundColor: 'rgba(124,58,237,0.1)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        if (lista.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">Sem vendas neste período</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = lista.slice().reverse().map(d => {
+            const m = d.faturado > 0 ? (d.lucro / d.faturado) * 100 : 0;
+            return `
+                <tr class="border-b">
+                    <td class="p-2">${new Date(d.dia + 'T12:00:00').toLocaleDateString('pt-AO')}</td>
+                    <td class="p-2 text-center">${d.vendas}</td>
+                    <td class="p-2 text-right">${d.faturado.toFixed(2)} Kz</td>
+                    <td class="p-2 text-right text-green-700 font-bold">${d.lucro.toFixed(2)} Kz</td>
+                    <td class="p-2 text-right text-purple-700">${m.toFixed(1)}%</td>
+                </tr>`;
+        }).join('');
+
+    } catch (e) {
+        console.error("Erro no lucro por período:", e);
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Erro: ${e.message}</td></tr>`;
+    }
+}
+
+function exportarRankingPDF() {
+    if (!dadosRankingAtual || dadosRankingAtual.length === 0) return alert("Sem dados para exportar!");
+    const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
+    const endereco = document.getElementById('config-endereco').value || 'Luanda, Angola';
+    const agora = new Date().toLocaleString('pt-AO');
+
+    const docDefinition = {
+        pageSize: 'A4', pageMargins: [40, 40, 40, 40],
+        content: [
+            { text: farmaciaNome, fontSize: 16, bold: true, color: '#0F766E', alignment: 'center' },
+            { text: endereco, fontSize: 9, color: '#666', alignment: 'center' },
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#0F766E' }], margin: [0, 6, 0, 6] },
+            { text: 'Produtos Mais Vendidos', fontSize: 13, bold: true, alignment: 'center', margin: [0, 4, 0, 2] },
+            { text: `Gerado em ${agora}`, fontSize: 8, color: '#888', alignment: 'center', margin: [0, 0, 0, 12] },
+            {
+                table: {
+                    headerRows: 1,
+                    widths: ['auto', '*', 'auto', 'auto', 'auto'],
+                    body: [
+                        [
+                            { text: '#', bold: true, fillColor: '#F0FDF4', color: '#0F766E' },
+                            { text: 'Produto', bold: true, fillColor: '#F0FDF4', color: '#0F766E' },
+                            { text: 'Qtd', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'center' },
+                            { text: 'Faturação', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'right' },
+                            { text: 'Lucro', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'right' }
+                        ],
+                        ...dadosRankingAtual.map((p, i) => [
+                            String(i + 1), p.nome, String(p.qtd),
+                            `${p.faturado.toFixed(2)}`, `${p.lucro.toFixed(2)}`
+                        ])
+                    ]
+                }, layout: 'lightHorizontalLines', fontSize: 8
+            },
+            { text: `Documento gerado por FarmaStock — ${agora}`, fontSize: 7, color: '#999', alignment: 'center', italics: true, margin: [0, 20, 0, 0] }
+        ]
+    };
+    pdfMake.createPdf(docDefinition).download(`ranking-produtos-${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+function exportarRankingExcel() {
+    if (!dadosRankingAtual || dadosRankingAtual.length === 0) return alert("Sem dados para exportar!");
+    const linhas = dadosRankingAtual.map((p, i) => ({
+        '#': i + 1, 'Produto': p.nome, 'Qtd Vendida': p.qtd,
+        'Faturação (Kz)': p.faturado, 'Lucro (Kz)': p.lucro
+    }));
+    const ws = XLSX.utils.json_to_sheet(linhas);
+    ws['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 12 }, { wch: 15 }, { wch: 15 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ranking");
+    XLSX.writeFile(wb, `ranking-produtos-${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+function exportarLucroPeriodoPDF() {
+    if (!dadosLucroPeriodoAtual || dadosLucroPeriodoAtual.length === 0) return alert("Sem dados para exportar!");
+    const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
+    const endereco = document.getElementById('config-endereco').value || 'Luanda, Angola';
+    const agora = new Date().toLocaleString('pt-AO');
+    const totalLucro = dadosLucroPeriodoAtual.reduce((s, d) => s + d.lucro, 0);
+    const totalFat = dadosLucroPeriodoAtual.reduce((s, d) => s + d.faturado, 0);
+
+    const docDefinition = {
+        pageSize: 'A4', pageMargins: [40, 40, 40, 40],
+        content: [
+            { text: farmaciaNome, fontSize: 16, bold: true, color: '#0F766E', alignment: 'center' },
+            { text: endereco, fontSize: 9, color: '#666', alignment: 'center' },
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#0F766E' }], margin: [0, 6, 0, 6] },
+            { text: 'Lucro por Período', fontSize: 13, bold: true, alignment: 'center', margin: [0, 4, 0, 2] },
+            { text: `Gerado em ${agora}`, fontSize: 8, color: '#888', alignment: 'center', margin: [0, 0, 0, 12] },
+            { text: `Faturação Total: ${totalFat.toFixed(2)} Kz`, fontSize: 9, margin: [0, 0, 0, 2] },
+            { text: `Lucro Total: ${totalLucro.toFixed(2)} Kz`, fontSize: 9, margin: [0, 0, 0, 12] },
+            {
+                table: {
+                    headerRows: 1,
+                    widths: ['*', 'auto', 'auto', 'auto', 'auto'],
+                    body: [
+                        [
+                            { text: 'Data', bold: true, fillColor: '#F0FDF4', color: '#0F766E' },
+                            { text: 'Vendas', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'center' },
+                            { text: 'Faturação', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'right' },
+                            { text: 'Lucro', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'right' },
+                            { text: 'Margem', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'right' }
+                        ],
+                        ...dadosLucroPeriodoAtual.map(d => {
+                            const m = d.faturado > 0 ? (d.lucro / d.faturado) * 100 : 0;
+                            return [
+                                new Date(d.dia + 'T12:00:00').toLocaleDateString('pt-AO'),
+                                String(d.vendas),
+                                `${d.faturado.toFixed(2)}`,
+                                `${d.lucro.toFixed(2)}`,
+                                `${m.toFixed(1)}%`
+                            ];
+                        })
+                    ]
+                }, layout: 'lightHorizontalLines', fontSize: 8
+            },
+            { text: `Documento gerado por FarmaStock — ${agora}`, fontSize: 7, color: '#999', alignment: 'center', italics: true, margin: [0, 20, 0, 0] }
+        ]
+    };
+    pdfMake.createPdf(docDefinition).download(`lucro-periodo-${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+function exportarLucroPeriodoExcel() {
+    if (!dadosLucroPeriodoAtual || dadosLucroPeriodoAtual.length === 0) return alert("Sem dados para exportar!");
+    const linhas = dadosLucroPeriodoAtual.map(d => {
+        const m = d.faturado > 0 ? (d.lucro / d.faturado) * 100 : 0;
+        return {
+            'Data': new Date(d.dia + 'T12:00:00').toLocaleDateString('pt-AO'),
+            'Vendas': d.vendas,
+            'Faturação (Kz)': d.faturado,
+            'Lucro (Kz)': d.lucro,
+            'Margem (%)': parseFloat(m.toFixed(2))
+        };
+    });
+    const ws = XLSX.utils.json_to_sheet(linhas);
+    ws['!cols'] = [{ wch: 14 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 12 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "LucroPeriodo");
+    XLSX.writeFile(wb, `lucro-periodo-${new Date().toISOString().split('T')[0]}.xlsx`);
+}
 
 async function carregarFechoCaixa() {
     const inputData = document.getElementById('fecho-data');
