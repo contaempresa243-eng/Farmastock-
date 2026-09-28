@@ -365,16 +365,19 @@
                                 <p class="text-gray-500 text-center">Recibo será gerado após finalizar venda</p>
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-2 mt-3">
-                            <button onclick="imprimirRecibo()" class="border py-2 rounded-lg btn text-sm">
-                                <i class="fa fa-print"></i> Imprimir
-                            </button>
-                            <button onclick="partilharWhatsApp()" class="bg-green-500 text-white py-2 rounded-lg btn text-sm">
-                                <i class="fa fa-whatsapp"></i> WhatsApp
-                            </button>
-                            <button onclick="partilharSMS()" class="bg-blue-500 text-white py-2 rounded-lg btn text-sm">
-                                <i class="fa fa-comment"></i> SMS
-                            </button>
+                        <div class="grid grid-cols-4 gap-2 mt-3">
+    <button onclick="imprimirRecibo()" class="border py-2 rounded-lg btn text-xs">
+        <i class="fa fa-print"></i> Recibo
+    </button>
+    <button onclick="emitirFatura()" class="bg-primary text-white py-2 rounded-lg btn text-xs">
+        <i class="fa fa-file-text-o"></i> Fatura
+    </button>
+    <button onclick="partilharWhatsApp()" class="bg-green-500 text-white py-2 rounded-lg btn text-xs">
+        <i class="fa fa-whatsapp"></i> WhatsApp
+    </button>
+    <button onclick="partilharSMS()" class="bg-blue-500 text-white py-2 rounded-lg btn text-xs">
+        <i class="fa fa-comment"></i> SMS
+    </button>
                         </div>
                     </div>
                 </div>
@@ -776,6 +779,16 @@
                         <label class="block text-sm font-medium mb-1">Telefone / WhatsApp</label>
                         <input type="text" id="config-telefone" class="w-full p-2 border rounded-lg">
                     </div>
+
+                  <div>
+    <label class="block text-sm font-medium mb-1">NIF da Farmácia <span class="text-xs text-gray-400">(opcional)</span></label>
+    <input type="text" id="config-nif" class="w-full p-2 border rounded-lg" placeholder="Ex: 5000000000">
+</div>
+<div>
+    <label class="block text-sm font-medium mb-1">Taxa de IVA (%)</label>
+    <input type="number" step="0.01" min="0" max="100" id="config-iva" class="w-full p-2 border rounded-lg" value="14">
+    <p class="text-xs text-gray-500 mt-1">Padrão em Angola: 14%</p>
+</div>
                     <button onclick="salvarConfiguracoes()" class="bg-primary text-white px-4 py-2 rounded-lg btn">
                         Salvar Definições
                     </button>
@@ -1182,6 +1195,8 @@ aplicarPermissoes(tipoUtilizador);
                     document.getElementById('config-nome-farmacia').value = c.nome || 'FarmaStock';
                     document.getElementById('config-endereco').value = c.endereco || 'Luanda, Angola';
                     document.getElementById('config-telefone').value = c.telefone || '';
+                  document.getElementById('config-nif').value = c.nif || '';
+document.getElementById('config-iva').value = c.iva !== undefined ? c.iva : 14;
                     document.getElementById('app-titulo-topo').textContent = c.nome || 'FarmaStock';
                     document.getElementById('recibo-nome-farmacia').textContent = c.nome || 'FarmaStock';
                     document.getElementById('recibo-endereco').textContent = `${c.endereco || 'Luanda'} • Tel: ${c.telefone || '---'}`;
@@ -1194,7 +1209,9 @@ aplicarPermissoes(tipoUtilizador);
             const dados = {
                 nome: document.getElementById('config-nome-farmacia').value.trim(),
                 endereco: document.getElementById('config-endereco').value.trim(),
-                telefone: document.getElementById('config-telefone').value.trim()
+                telefone: document.getElementById('config-telefone').value.trim(),
+nif: document.getElementById('config-nif').value.trim() || null,
+iva: parseFloat(document.getElementById('config-iva').value) || 14
             };
             await db.collection('configuracoes').doc('geral').set(dados);
             await carregarConfiguracoesGerais();
@@ -2091,6 +2108,195 @@ function gerarRecibo(venda) {
     html += `<p class="text-xs text-gray-500 mt-2">Op: ${escaparHTML(venda.operador)}</p>`;
 
     document.getElementById('corpo-recibo').innerHTML = html;
+}
+
+      // ==========================================
+// 🧾 EMITIR FATURA FORMAL (PDF profissional)
+// ==========================================
+function emitirFatura() {
+    if (!ultimaVenda) {
+        return alert("Nenhuma venda registada. Finalize uma venda primeiro.");
+    }
+
+    const v = ultimaVenda;
+
+    // Dados da farmácia
+    const farmaciaNome = document.getElementById('config-nome-farmacia').value || 'FarmaStock';
+    const endereco = document.getElementById('config-endereco').value || 'Luanda, Angola';
+    const telefone = document.getElementById('config-telefone').value || '';
+    const nifFarmacia = document.getElementById('config-nif').value.trim();
+    const taxaIVA = parseFloat(document.getElementById('config-iva').value) || 14;
+
+    const agora = new Date();
+    const dataFatura = agora.toLocaleDateString('pt-AO');
+    const horaFatura = agora.toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' });
+    const numFatura = v._numRecibo || v.numRecibo || Date.now().toString().slice(-6);
+
+    // NIF do cliente (ou Consumidor Final)
+    const nifCliente = v.nifCliente ? String(v.nifCliente) : 'Consumidor Final';
+
+    // Construir linhas da tabela de itens
+    const linhasItens = (v.itens || []).map((i, idx) => [
+        { text: String(idx + 1), alignment: 'center' },
+        { text: i.produtoNome || '—' },
+        { text: String(i.quantidade), alignment: 'center' },
+        { text: `${(i.precoUnit || 0).toFixed(2)}`, alignment: 'right' },
+        { text: `${(i.subtotal || 0).toFixed(2)}`, alignment: 'right' }
+    ]);
+
+    // Cálculos de IVA (o preço de venda já inclui IVA em Angola)
+    // Se quiser discriminar, calcula-se o valor de base assim:
+    const baseTributavel = v.total / (1 + taxaIVA / 100);
+    const valorIVA = v.total - baseTributavel;
+
+    const docDefinition = {
+        pageSize: 'A4',
+        pageMargins: [40, 40, 40, 60],
+
+        header: function(currentPage, pageCount) {
+            // Só mostra o cabeçalho na 1.ª página
+            if (currentPage > 1) return null;
+            return null;
+        },
+
+        content: [
+            // ---------- CABEÇALHO ----------
+            {
+                columns: [
+                    {
+                        width: '*',
+                        stack: [
+                            { text: farmaciaNome, fontSize: 18, bold: true, color: '#0F766E' },
+                            { text: endereco, fontSize: 10, color: '#444' },
+                            { text: telefone ? `Tel: ${telefone}` : '', fontSize: 10, color: '#444' },
+                            { text: nifFarmacia ? `NIF: ${nifFarmacia}` : '', fontSize: 10, color: '#444', bold: true }
+                        ]
+                    },
+                    {
+                        width: 'auto',
+                        stack: [
+                            { text: 'FATURA', fontSize: 20, bold: true, color: '#0F766E', alignment: 'right' },
+                            { text: `Nº ${numFatura}`, fontSize: 11, alignment: 'right' },
+                            { text: `Data: ${dataFatura}`, fontSize: 10, color: '#444', alignment: 'right' },
+                            { text: `Hora: ${horaFatura}`, fontSize: 10, color: '#444', alignment: 'right' }
+                        ]
+                    }
+                ]
+            },
+
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#0F766E' }], margin: [0, 8, 0, 10] },
+
+            // ---------- DADOS DO CLIENTE ----------
+            {
+                table: {
+                    widths: ['auto', '*'],
+                    body: [
+                        [
+                            { text: 'Cliente:', bold: true, fontSize: 10, border: [false, false, false, false] },
+                            { text: nifCliente === 'Consumidor Final' ? 'Consumidor Final' : `NIF ${nifCliente}`, fontSize: 10, border: [false, false, false, false] }
+                        ],
+                        [
+                            { text: 'Operador:', bold: true, fontSize: 10, border: [false, false, false, false] },
+                            { text: v.operador || '—', fontSize: 10, border: [false, false, false, false] }
+                        ]
+                    ]
+                },
+                margin: [0, 0, 0, 12]
+            },
+
+            // ---------- TABELA DE ITENS ----------
+            {
+                table: {
+                    headerRows: 1,
+                    widths: ['auto', '*', 'auto', 'auto', 'auto'],
+                    body: [
+                        [
+                            { text: '#', style: 'thF', alignment: 'center' },
+                            { text: 'Descrição', style: 'thF' },
+                            { text: 'Qtd', style: 'thF', alignment: 'center' },
+                            { text: 'Preço Unit.', style: 'thF', alignment: 'right' },
+                            { text: 'Subtotal', style: 'thF', alignment: 'right' }
+                        ],
+                        ...linhasItens
+                    ]
+                },
+                layout: 'lightHorizontalLines',
+                fontSize: 9
+            },
+
+            // ---------- RESUMO FINANCEIRO ----------
+            {
+                columns: [
+                    { width: '*', text: '' },
+                    {
+                        width: 240,
+                        table: {
+                            widths: ['*', 'auto'],
+                            body: [
+                                [
+                                    { text: 'Base Tributável:', fontSize: 9, border: [false, false, false, false] },
+                                    { text: `${baseTributavel.toFixed(2)} Kz`, fontSize: 9, alignment: 'right', border: [false, false, false, false] }
+                                ],
+                                [
+                                    { text: `IVA (${taxaIVA}%):`, fontSize: 9, border: [false, false, false, false] },
+                                    { text: `${valorIVA.toFixed(2)} Kz`, fontSize: 9, alignment: 'right', border: [false, false, false, false] }
+                                ],
+                                [
+                                    { text: 'TOTAL:', fontSize: 12, bold: true, color: '#0F766E', border: [false, true, false, false] },
+                                    { text: `${(v.total || 0).toFixed(2)} Kz`, fontSize: 12, bold: true, color: '#0F766E', alignment: 'right', border: [false, true, false, false] }
+                                ],
+                                [
+                                    { text: 'Valor Pago:', fontSize: 9, border: [false, false, false, false] },
+                                    { text: `${(v.pago || 0).toFixed(2)} Kz`, fontSize: 9, alignment: 'right', border: [false, false, false, false] }
+                                ],
+                                [
+                                    { text: 'Troco:', fontSize: 9, border: [false, false, false, false] },
+                                    { text: `${(v.troco || 0).toFixed(2)} Kz`, fontSize: 9, alignment: 'right', border: [false, false, false, false] }
+                                ]
+                            ]
+                        }
+                    }
+                ],
+                margin: [0, 12, 0, 20]
+            },
+
+            // ---------- ASSINATURAS ----------
+            {
+                columns: [
+                    {
+                        width: '*',
+                        stack: [
+                            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 180, y2: 0, lineWidth: 1 }], margin: [0, 40, 0, 4] },
+                            { text: 'Assinatura do Operador', fontSize: 9, alignment: 'center', color: '#555' }
+                        ]
+                    },
+                    {
+                        width: '*',
+                        stack: [
+                            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 180, y2: 0, lineWidth: 1 }], margin: [0, 40, 0, 4] },
+                            { text: 'Assinatura do Cliente', fontSize: 9, alignment: 'center', color: '#555' }
+                        ]
+                    }
+                ]
+            },
+
+            // ---------- RODAPÉ ----------
+            { text: 'Documento emitido por FarmaStock', fontSize: 8, color: '#888', alignment: 'center', margin: [0, 40, 0, 0], italics: true },
+            { text: 'Obrigado pela sua preferência!', fontSize: 9, color: '#0F766E', alignment: 'center', bold: true, margin: [0, 4, 0, 0] }
+        ],
+
+        styles: {
+            thF: {
+                bold: true,
+                fontSize: 9,
+                fillColor: '#F0FDF4',
+                color: '#0F766E'
+            }
+        }
+    };
+
+    const nomeFicheiro = `fatura-${numFatura}.pdf`;
+    pdfMake.createPdf(docDefinition).download(nomeFicheiro);
 }
 
         function imprimirRecibo() {
