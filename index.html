@@ -110,7 +110,7 @@
 
         <!-- MENU DE NAVEGAÇÃO -->
         <nav class="bg-gray-50 border-b p-2 sticky top-16 z-30">
-            <div class="grid grid-cols-2 md:grid-cols-7 gap-2 text-sm font-medium">
+            <div class="grid grid-cols-2 md:grid-cols-8 gap-2 text-sm font-medium">
                 <button onclick="abrirSecao('dashboard')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn" id="nav-dashboard">
                     <i class="fa fa-chart-pie block text-lg mb-1"></i>Painel
                 </button>
@@ -125,6 +125,9 @@
                 </button>
               <button onclick="abrirSecao('historico')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn" id="nav-historico">
     <i class="fa fa-history block text-lg mb-1"></i>Histórico
+              </button>
+              <button onclick="abrirSecao('fechocaixa')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn perm-gestor perm-admin" id="nav-fechocaixa">
+    <i class="fa fa-calculator block text-lg mb-1"></i>Fecho
               </button>
                 <button onclick="abrirSecao('utilizadores')" class="py-2 px-2 rounded-lg hover:bg-primary/10 text-center btn perm-gestor perm-admin" id="nav-utilizadores">
                     <i class="fa fa-users block text-lg mb-1"></i>Utilizadores
@@ -432,6 +435,135 @@
         <div class="text-center text-gray-500 py-8 border rounded-lg">
             <i class="fa fa-history text-3xl mb-2 block"></i>
             Clique em <strong>Atualizar</strong> para carregar o histórico
+        </div>
+    </div>
+</section>
+
+          <!-- 💰 FECHO DE CAIXA -->
+<section id="fechocaixa" class="secao perm-gestor perm-admin">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+        <h2 class="text-2xl font-bold">Fecho de Caixa</h2>
+        <div class="flex gap-2 flex-wrap">
+            <input type="date" id="fecho-data" class="border p-2 rounded-lg text-sm">
+            <button onclick="carregarFechoCaixa()" class="bg-primary text-white px-3 py-2 rounded-lg btn text-sm">
+                <i class="fa fa-search mr-1"></i> Gerar Fecho
+            </button>
+        </div>
+    </div>
+
+    <div id="fecho-vazio" class="text-center text-gray-500 py-12 border rounded-lg">
+        <i class="fa fa-calculator text-4xl mb-2 block opacity-30"></i>
+        Escolha uma data e clique em <strong>Gerar Fecho</strong>
+    </div>
+
+    <div id="fecho-conteudo" class="hidden">
+        <div class="bg-primary text-white p-4 rounded-lg mb-4">
+            <div class="text-center">
+                <h3 class="text-lg font-bold" id="fecho-nome-farmacia">FarmaStock</h3>
+                <p class="text-xs opacity-90" id="fecho-endereco-farmacia">Luanda, Angola</p>
+                <hr class="my-2 border-white/30">
+                <p class="font-bold">FECHO DE CAIXA</p>
+                <p class="text-sm" id="fecho-data-extenso">—</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div class="bg-blue-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Nº de Vendas</p>
+                <p class="text-2xl font-bold text-blue-700" id="fecho-total-vendas">0</p>
+            </div>
+            <div class="bg-green-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Faturação Total</p>
+                <p class="text-xl font-bold text-green-700" id="fecho-total-faturado">0 Kz</p>
+            </div>
+            <div class="bg-purple-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Lucro Total</p>
+                <p class="text-xl font-bold text-purple-700" id="fecho-total-lucro">0 Kz</p>
+            </div>
+            <div class="bg-amber-50 p-3 rounded-lg border">
+                <p class="text-xs text-gray-500">Anuladas</p>
+                <p class="text-2xl font-bold text-amber-700" id="fecho-total-anuladas">0</p>
+            </div>
+        </div>
+
+        <div class="bg-gray-100 p-4 rounded-lg mb-4 border-2 border-primary">
+            <div class="grid grid-cols-3 gap-3 text-center">
+                <div>
+                    <p class="text-xs text-gray-600">Total Entregue</p>
+                    <p class="text-lg font-bold text-primary" id="fecho-dinheiro-total">0 Kz</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-600">Total Trocado</p>
+                    <p class="text-lg font-bold text-primary" id="fecho-troco-total">0 Kz</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-600">Faturação Líquida</p>
+                    <p class="text-xl font-bold text-primary" id="fecho-liquido">0 Kz</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="border rounded-lg p-4 mb-4">
+            <h3 class="font-bold mb-3 flex items-center gap-2">
+                <i class="fa fa-user-circle text-primary"></i> Vendas por Operador
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="text-left p-2">Operador</th>
+                            <th class="text-center p-2">Vendas</th>
+                            <th class="text-right p-2">Faturação</th>
+                            <th class="text-right p-2">Lucro</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fecho-tabela-operadores">
+                        <tr><td colspan="4" class="p-3 text-center text-gray-500">—</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="border rounded-lg p-4 mb-4">
+            <h3 class="font-bold mb-3 flex items-center gap-2">
+                <i class="fa fa-trophy text-warning"></i> Produtos Mais Vendidos
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="text-left p-2">Produto</th>
+                            <th class="text-center p-2">Qtd</th>
+                            <th class="text-right p-2">Faturação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fecho-tabela-produtos">
+                        <tr><td colspan="3" class="p-3 text-center text-gray-500">—</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="border rounded-lg p-4 bg-gray-50">
+            <div class="grid grid-cols-2 gap-8 mt-4">
+                <div class="text-center">
+                    <div class="border-b-2 border-gray-400 h-12"></div>
+                    <p class="text-xs text-gray-600 mt-1">Operador de Caixa</p>
+                </div>
+                <div class="text-center">
+                    <div class="border-b-2 border-gray-400 h-12"></div>
+                    <p class="text-xs text-gray-600 mt-1">Gerente / Supervisor</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-2 mt-4">
+            <button onclick="imprimirFecho()" class="flex-1 bg-primary text-white py-3 rounded-lg btn font-bold">
+                <i class="fa fa-print mr-1"></i> Imprimir Fecho
+            </button>
+            <button onclick="partilharFechoWhatsApp()" class="flex-1 bg-green-500 text-white py-3 rounded-lg btn font-bold">
+                <i class="fa fa-whatsapp mr-1"></i> Enviar WhatsApp
+            </button>
         </div>
     </div>
 </section>
@@ -1993,6 +2125,154 @@ transaction.update(vendaRef, {
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa fa-times mr-1"></i> Anular';
+        }
+    }
+}
+
+      // ==========================================
+// 💰 FECHO DE CAIXA
+// ==========================================
+let dadosFechoAtual = null;  // guarda para o imprimir/partilhar
+
+async function carregarFechoCaixa() {
+    const inputData = document.getElementById('fecho-data');
+    let dataStr = inputData.value;
+
+    // Se não escolheu data, usa hoje
+    if (!dataStr) {
+        const hoje = new Date();
+        dataStr = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000)
+                    .toISOString().split('T')[0];
+        inputData.value = dataStr;
+    }
+
+    const btn = document.querySelector('button[onclick="carregarFechoCaixa()"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> A calcular...';
+    }
+
+    try {
+        const snap = await db.collection('vendas').get();
+
+        // Filtrar pelo dia escolhido
+        const vendasDia = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(v => (v.data || '').startsWith(dataStr));
+
+        const ativas = vendasDia.filter(v => !v.anulada);
+        const anuladas = vendasDia.filter(v => v.anulada);
+
+        // Totais
+        const totalVendas = ativas.length;
+        const totalFaturado = ativas.reduce((s, v) => s + (v.total || 0), 0);
+        const totalLucro = ativas.reduce((s, v) => s + (v.lucro || 0), 0);
+        const totalAnuladas = anuladas.length;
+        const totalPago = ativas.reduce((s, v) => s + (v.pago || 0), 0);
+        const totalTroco = ativas.reduce((s, v) => s + (v.troco || 0), 0);
+        const liquido = totalFaturado;
+
+        // Por operador
+        const porOperador = {};
+        ativas.forEach(v => {
+            const op = v.operador || 'Desconhecido';
+            if (!porOperador[op]) porOperador[op] = { vendas: 0, faturado: 0, lucro: 0 };
+            porOperador[op].vendas++;
+            porOperador[op].faturado += (v.total || 0);
+            porOperador[op].lucro += (v.lucro || 0);
+        });
+
+        // Por produto (suporta formato antigo e multi-item)
+        const porProduto = {};
+        ativas.forEach(v => {
+            if (Array.isArray(v.itens) && v.itens.length > 0) {
+                v.itens.forEach(i => {
+                    const nome = i.produtoNome || 'Desconhecido';
+                    if (!porProduto[nome]) porProduto[nome] = { qtd: 0, faturado: 0 };
+                    porProduto[nome].qtd += i.quantidade || 0;
+                    porProduto[nome].faturado += (i.subtotal || 0);
+                });
+            } else if (v.produtoNome) {
+                const nome = v.produtoNome;
+                if (!porProduto[nome]) porProduto[nome] = { qtd: 0, faturado: 0 };
+                porProduto[nome].qtd += v.quantidade || 0;
+                porProduto[nome].faturado += (v.total || 0);
+            }
+        });
+
+        const topProdutos = Object.entries(porProduto)
+            .map(([nome, dados]) => ({ nome, ...dados }))
+            .sort((a, b) => b.qtd - a.qtd)
+            .slice(0, 10);
+
+        // Guardar para impressão/partilha
+        dadosFechoAtual = {
+            data: dataStr,
+            totalVendas, totalFaturado, totalLucro, totalAnuladas,
+            totalPago, totalTroco, liquido,
+            porOperador, topProdutos
+        };
+
+        // Renderizar cabeçalho
+        const dataObj = new Date(dataStr + 'T12:00:00');
+        const dataExtenso = dataObj.toLocaleDateString('pt-AO', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        document.getElementById('fecho-nome-farmacia').textContent =
+            document.getElementById('config-nome-farmacia').value || 'FarmaStock';
+        document.getElementById('fecho-endereco-farmacia').textContent =
+            document.getElementById('config-endereco').value || 'Luanda, Angola';
+        document.getElementById('fecho-data-extenso').textContent = dataExtenso;
+
+        // Cartões
+        document.getElementById('fecho-total-vendas').textContent = totalVendas;
+        document.getElementById('fecho-total-faturado').textContent = totalFaturado.toFixed(2) + ' Kz';
+        document.getElementById('fecho-total-lucro').textContent = totalLucro.toFixed(2) + ' Kz';
+        document.getElementById('fecho-total-anuladas').textContent = totalAnuladas;
+        document.getElementById('fecho-dinheiro-total').textContent = totalPago.toFixed(2) + ' Kz';
+        document.getElementById('fecho-troco-total').textContent = totalTroco.toFixed(2) + ' Kz';
+        document.getElementById('fecho-liquido').textContent = liquido.toFixed(2) + ' Kz';
+
+        // Tabela operadores
+        const tbodyOp = document.getElementById('fecho-tabela-operadores');
+        const opsEntries = Object.entries(porOperador).sort((a, b) => b[1].faturado - a[1].faturado);
+        if (opsEntries.length === 0) {
+            tbodyOp.innerHTML = '<tr><td colspan="4" class="p-3 text-center text-gray-500">Sem vendas neste dia</td></tr>';
+        } else {
+            tbodyOp.innerHTML = opsEntries.map(([nome, d]) => `
+                <tr class="border-b">
+                    <td class="p-2">${escaparHTML(nome)}</td>
+                    <td class="p-2 text-center">${d.vendas}</td>
+                    <td class="p-2 text-right">${d.faturado.toFixed(2)} Kz</td>
+                    <td class="p-2 text-right text-green-700">${d.lucro.toFixed(2)} Kz</td>
+                </tr>`).join('');
+        }
+
+        // Tabela produtos
+        const tbodyProd = document.getElementById('fecho-tabela-produtos');
+        if (topProdutos.length === 0) {
+            tbodyProd.innerHTML = '<tr><td colspan="3" class="p-3 text-center text-gray-500">Sem produtos vendidos</td></tr>';
+        } else {
+            tbodyProd.innerHTML = topProdutos.map(p => `
+                <tr class="border-b">
+                    <td class="p-2">${escaparHTML(p.nome)}</td>
+                    <td class="p-2 text-center font-bold">${p.qtd}</td>
+                    <td class="p-2 text-right">${p.faturado.toFixed(2)} Kz</td>
+                </tr>`).join('');
+        }
+
+        // Mostrar/esconder
+        document.getElementById('fecho-vazio').classList.add('hidden');
+        document.getElementById('fecho-conteudo').classList.remove('hidden');
+
+    } catch (e) {
+        console.error("Erro no fecho:", e);
+        alert("❌ Erro: " + e.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa fa-search mr-1"></i> Gerar Fecho';
         }
     }
 }
