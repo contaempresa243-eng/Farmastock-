@@ -138,7 +138,7 @@
         <main class="p-4">
 
             <!-- 📊 DASHBOARD -->
-            <section id="dashboard" class="secao ativa">
+            < id="dashboard" class="secao ativa">
                 <h2 class="text-2xl font-bold mb-4">Painel Geral</h2>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -171,15 +171,41 @@
                     </div>
                 </div>
 
-                <div class="border rounded-lg p-4 bg-amber-50">
-                    <h3 class="font-bold mb-2 flex items-center gap-2 text-amber-800">
-                        <i class="fa fa-exclamation-triangle"></i> Alertas Importantes
-                    </h3>
-                    <div id="lista-alertas" class="text-sm space-y-1">
-                        <p class="text-amber-700">Sem alertas no momento ✅</p>
-                    </div>
+                <div class="grid md:grid-cols-2 gap-4">
+
+    <!-- 📅 Alertas de Validade -->
+    <div class="border rounded-lg p-4 bg-amber-50">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold flex items-center gap-2 text-amber-800">
+                <i class="fa fa-calendar-times-o"></i> Validades Próximas
+            </h3>
+            <span id="badge-vencer" class="bg-amber-600 text-white text-xs px-2 py-1 rounded-full">0</span>
+        </div>
+        <div id="lista-vencer" class="space-y-2 max-h-72 overflow-y-auto">
+            <p class="text-sm text-gray-500 text-center py-4">
+                <i class="fa fa-check-circle text-green-500 text-xl block mb-1"></i>
+                Nenhum produto a vencer nos próximos 90 dias
+            </p>
+        </div>
+    </div>
+
+    <!-- 📦 Sugestões de Reposição -->
+    <div class="border rounded-lg p-4 bg-red-50">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold flex items-center gap-2 text-red-800">
+                <i class="fa fa-cubes"></i> Reposição Recomendada
+            </h3>
+            <span id="badge-stock" class="bg-red-600 text-white text-xs px-2 py-1 rounded-full">0</span>
+        </div>
+        <div id="lista-stock" class="space-y-2 max-h-72 overflow-y-auto">
+            <p class="text-sm text-gray-500 text-center py-4">
+                <i class="fa fa-check-circle text-green-500 text-xl block mb-1"></i>
+                Todos os produtos têm stock suficiente
+            </p>
+        </div>
+    </div>
+
                 </div>
-            </section>
 
             <!-- 💊 PRODUTOS -->
             <section id="produtos" class="secao">
@@ -926,33 +952,155 @@ aplicarPermissoes(tipoUtilizador);
         }
 
         async function carregarDadosDashboard() {
-            const produtosSnap = await db.collection('produtos').get();
-            const totalProd = produtosSnap.size;
-            let stockBaixo = 0, vencer = 0;
-            const hoje = new Date();
+    const produtosSnap = await db.collection('produtos').get();
+    const totalProd = produtosSnap.size;
+    let stockBaixo = 0, vencer = 0, disponivel = 0, esgotado = 0;
+    const hoje = new Date();
 
-            produtosSnap.forEach(doc => {
-                const p = doc.data();
-                if (p.stock <= p.minimo) stockBaixo++;
-                const dias = Math.ceil((new Date(p.validade) - hoje) / (1000*60*60*24));
-                if (dias >= 0 && dias <= 30) vencer++;
-            });
+    const listaVencer = [];
+    const listaRepor = [];
 
-            document.getElementById('resumo-total-prod').textContent = totalProd;
-            document.getElementById('resumo-stock-baixo').textContent = stockBaixo;
-            document.getElementById('resumo-vencer').textContent = vencer;
+    produtosSnap.forEach(doc => {
+        const p = doc.data();
+        const id = doc.id;
 
-            const hojeStr = hoje.toISOString().split('T')[0];
-            const vendasSnap = await db.collection('vendas').where('data', '>=', hojeStr).get();
-            const lucroDia = vendasSnap.docs.reduce((sum, d) => sum + (d.data().lucro || 0), 0);
-            document.getElementById('resumo-lucro-dia').textContent = lucroDia.toFixed(2) + ' Kz';
+        if (p.stock <= 0) esgotado++;
+        else if (p.stock <= p.minimo) stockBaixo++;
+        else disponivel++;
 
-            const alertas = [];
-            if (stockBaixo > 0) alertas.push(`⚠️ ${stockBaixo} produtos com stock baixo!`);
-            if (vencer > 0) alertas.push(`⚠️ ${vencer} produtos próximos do vencimento!`);
-            document.getElementById('lista-alertas').innerHTML = alertas.length ? alertas.map(a=>`<p>${a}</p>`).join('') : '<p>Sem alertas ✅</p>';
+        const dias = Math.ceil((new Date(p.validade) - hoje) / (1000 * 60 * 60 * 24));
+        if (dias >= 0 && dias <= 90) {
+            vencer++;
+            listaVencer.push({ id, nome: p.nome, lote: p.lote, validade: p.validade, dias, stock: p.stock });
         }
 
+        if (p.stock <= p.minimo) {
+            listaRepor.push({
+                id, nome: p.nome, lote: p.lote,
+                stock: p.stock, minimo: p.minimo, fornecedor: p.fornecedor
+            });
+        }
+    });
+
+    document.getElementById('resumo-total-prod').textContent = totalProd;
+    document.getElementById('resumo-stock-baixo').textContent = stockBaixo;
+    document.getElementById('resumo-vencer').textContent = vencer;
+
+    const hojeLocal = new Date(Date.now() - hoje.getTimezoneOffset() * 60000)
+                        .toISOString().split('T')[0];
+    const vendasSnap = await db.collection('vendas').where('data', '>=', hojeLocal).get();
+    const lucroDia = vendasSnap.docs
+        .filter(d => !d.data().anulada)
+        .reduce((s, d) => s + (d.data().lucro || 0), 0);
+    document.getElementById('resumo-lucro-dia').textContent = lucroDia.toFixed(2) + ' Kz';
+
+    renderizarListaVencer(listaVencer);
+    renderizarListaRepor(listaRepor);
+
+    await atualizarGraficos(disponivel, stockBaixo, esgotado);
+}
+
+function renderizarListaVencer(lista) {
+    const container = document.getElementById('lista-vencer');
+    const badge = document.getElementById('badge-vencer');
+    badge.textContent = lista.length;
+
+    if (lista.length === 0) {
+        container.innerHTML = `
+            <p class="text-sm text-gray-500 text-center py-4">
+                <i class="fa fa-check-circle text-green-500 text-xl block mb-1"></i>
+                Nenhum produto a vencer nos próximos 90 dias
+            </p>`;
+        return;
+    }
+
+    lista.sort((a, b) => a.dias - b.dias);
+
+    container.innerHTML = lista.map(item => {
+        let cor, icone;
+        if (item.dias < 0) {
+            cor = 'bg-red-100 border-red-400';
+            icone = '🚫';
+        } else if (item.dias <= 30) {
+            cor = 'bg-red-50 border-red-300';
+            icone = '🔴';
+        } else if (item.dias <= 60) {
+            cor = 'bg-amber-50 border-amber-300';
+            icone = '🟡';
+        } else {
+            cor = 'bg-green-50 border-green-300';
+            icone = '🟢';
+        }
+
+        const textoDias = item.dias < 0
+            ? `VENCIDO há ${Math.abs(item.dias)} dias`
+            : item.dias === 0
+                ? 'Vence HOJE'
+                : `${item.dias} dias`;
+
+        const dataFormatada = new Date(item.validade).toLocaleDateString('pt-AO');
+
+        return `
+            <div class="border rounded-lg p-2 text-xs ${cor}">
+                <div class="font-bold">${icone} ${escaparHTML(item.nome)}</div>
+                <div class="text-gray-600">Lote: ${escaparHTML(item.lote)} • Stock: ${item.stock}</div>
+                <div class="mt-1 flex justify-between">
+                    <span>${dataFormatada}</span>
+                    <span class="font-bold">${textoDias}</span>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function renderizarListaRepor(lista) {
+    const container = document.getElementById('lista-stock');
+    const badge = document.getElementById('badge-stock');
+    badge.textContent = lista.length;
+
+    if (lista.length === 0) {
+        container.innerHTML = `
+            <p class="text-sm text-gray-500 text-center py-4">
+                <i class="fa fa-check-circle text-green-500 text-xl block mb-1"></i>
+                Todos os produtos têm stock suficiente
+            </p>`;
+        return;
+    }
+
+    lista.sort((a, b) => (a.stock - a.minimo) - (b.stock - b.minimo));
+
+    container.innerHTML = lista.map(item => {
+        const falta = item.minimo - item.stock;
+        const esgotado = item.stock <= 0;
+        const cor = esgotado ? 'bg-red-100 border-red-400' : 'bg-red-50 border-red-300';
+        const icone = esgotado ? '🚫' : '⚠️';
+
+        return `
+            <div class="border rounded-lg p-2 text-xs ${cor}">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="font-bold">${icone} ${escaparHTML(item.nome)}</div>
+                        <div class="text-gray-600">Lote: ${escaparHTML(item.lote)}</div>
+                        <div class="mt-1">
+                            Stock: <strong>${item.stock}</strong> / Mínimo: ${item.minimo}
+                            ${falta > 0 ? `<span class="text-red-700 font-bold ml-1">(falta ${falta})</span>` : ''}
+                        </div>
+                        ${item.fornecedor ? `<div class="text-gray-500 mt-1">Fornecedor: ${escaparHTML(item.fornecedor)}</div>` : ''}
+                    </div>
+                    <button onclick="entradaRapida('${item.id}')" class="bg-success text-white px-2 py-1 rounded btn text-xs ml-2">
+                        <i class="fa fa-plus"></i>
+                    </button>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+async function entradaRapida(prodId) {
+    abrirModalEntrada();
+    await new Promise(r => setTimeout(r, 300));
+    const sel = document.getElementById('entrada-produto');
+    sel.value = prodId;
+    sel.dispatchEvent(new Event('change'));
+      }
         function inicializarGraficos() {
             if (graficoVendas) graficoVendas.destroy();
             if (graficoStock) graficoStock.destroy();
