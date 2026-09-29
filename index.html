@@ -166,21 +166,39 @@ body.dark .text-emerald-700 { color: #6EE7B7 !important; }
 body.dark .bg-amber-50 { background: #292015 !important; border-color: #78350f !important; }
 body.dark .bg-red-50   { background: #2a1414 !important; border-color: #7f1d1d !important; }
       
-      /* Forçar centragem dos modais em modo escuro */
+      /* Modais em modo escuro — CSS Grid (mais robusto) */
 body.dark #modal-utilizador:not(.hidden),
 body.dark #modal-produto:not(.hidden),
 body.dark #modal-entrada:not(.hidden) {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    display: grid !important;
+    place-items: center !important;
+    grid-template-columns: 1fr !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    padding: 16px !important;
+    box-sizing: border-box !important;
+    background: rgba(0,0,0,0.75) !important;
+    z-index: 9999 !important;
 }
 
 body.dark #modal-utilizador > div,
 body.dark #modal-produto > div,
 body.dark #modal-entrada > div {
     width: 100% !important;
-    max-width: 480px !important;
-      }
+    max-width: 448px !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-radius: 12px !important;
+    margin: 0 auto !important;
+                           }
 /* Scroll suave */
 body { transition: background-color 0.3s ease, color 0.3s ease; }
 
