@@ -58,6 +58,86 @@
         .alerta-piscar { animation: piscar 1s infinite alternate; }
         @keyframes piscar { from { opacity: 1; } to { opacity: 0.5; } }
         .perm-oculto { display: none !important; }
+
+      /* ==========================================
+   🌙 TEMA ESCURO
+   ========================================== */
+body.dark {
+    background: #0f172a !important;
+    color: #e2e8f0 !important;
+}
+
+/* Cabeçalho e menu */
+body.dark header { background: #064e3b !important; }
+body.dark nav {
+    background: #1e293b !important;
+    border-bottom-color: #334155 !important;
+}
+body.dark nav button {
+    color: #e2e8f0 !important;
+}
+body.dark nav button:hover { background: rgba(15,118,110,0.25) !important; }
+
+/* Fundo geral dos contentores */
+body.dark #app-principal { background: #0f172a !important; }
+body.dark .bg-white { background: #1e293b !important; color: #e2e8f0 !important; }
+body.dark .bg-gray-50 { background: #0f172a !important; }
+body.dark .bg-gray-100 { background: #1e293b !important; }
+
+/* Texto */
+body.dark .text-gray-500 { color: #94a3b8 !important; }
+body.dark .text-gray-600 { color: #cbd5e1 !important; }
+body.dark .text-gray-700 { color: #e2e8f0 !important; }
+body.dark .text-gray-800 { color: #f1f5f9 !important; }
+body.dark .text-gray-400 { color: #64748b !important; }
+
+/* Bordas e separadores */
+body.dark .border,
+body.dark .border-b,
+body.dark .border-t { border-color: #334155 !important; }
+
+/* Inputs e selects */
+body.dark input,
+body.dark select,
+body.dark textarea {
+    background: #1e293b !important;
+    color: #f1f5f9 !important;
+    border-color: #475569 !important;
+}
+body.dark input::placeholder,
+body.dark textarea::placeholder { color: #64748b !important; }
+body.dark input[readonly] { background: #0f172a !important; color: #94a3b8 !important; }
+
+/* Tabelas */
+body.dark table thead { background: #1e293b !important; }
+body.dark table thead th { color: #94a3b8 !important; border-color: #334155 !important; }
+body.dark table tbody tr { border-color: #334155 !important; }
+body.dark table tbody tr:nth-child(even) { background: #172033 !important; }
+
+/* Cartões coloridos — versão escura */
+body.dark .bg-blue-50 { background: #1e3a5f !important; }
+body.dark .bg-green-50 { background: #14532d !important; }
+body.dark .bg-amber-50 { background: #78350f !important; }
+body.dark .bg-red-50 { background: #7f1d1d !important; }
+body.dark .bg-purple-50 { background: #4c1d95 !important; }
+body.dark .bg-teal-50 { background: #134e4a !important; }
+body.dark .bg-indigo-50 { background: #312e81 !important; }
+body.dark .bg-emerald-50 { background: #064e3b !important; }
+
+/* Modais */
+body.dark .fixed.bg-black\/50 { background: rgba(0,0,0,0.75) !important; }
+body.dark .rounded-lg.bg-white { background: #1e293b !important; }
+
+/* Rodapés e áreas específicas */
+body.dark .bg-gray-50.p-4,
+body.dark .bg-gray-50.p-3 { background: #172033 !important; }
+
+/* Botões brancos/secundários */
+body.dark button.border { background: #1e293b !important; color: #e2e8f0 !important; }
+
+/* Scroll suave */
+body { transition: background-color 0.3s ease, color 0.3s ease; }
+
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen">
@@ -105,6 +185,9 @@
                 <div class="flex items-center gap-3">
                     <span id="nome-user" class="text-sm bg-white/20 px-3 py-1 rounded-full">—</span>
                     <span id="tipo-user" class="text-xs px-2 py-1 rounded-full bg-white/20">—</span>
+                  <button onclick="toggleDarkMode()" class="hover:bg-white/20 p-2 rounded-lg btn" id="btn-dark-mode" title="Alternar tema claro/escuro">
+    <i class="fa fa-moon-o" id="icone-tema"></i>
+                  </button>
                     <button onclick="logout()" class="hover:bg-white/20 p-2 rounded-lg btn">
                         <i class="fa fa-sign-out"></i>
                     </button>
@@ -980,6 +1063,8 @@
         };
 
         firebase.initializeApp(firebaseConfig);
+      // Aplicar tema guardado assim que o script carrega
+aplicarTemaGuardado();
         const auth = firebase.auth();
         const db = firebase.firestore();
 
@@ -1216,6 +1301,47 @@ aplicarPermissoes(tipoUtilizador);
                 alert("❌ Erro de acesso: " + erro.message);
             }
         });
+
+      // ==========================================
+// 🌙 MODO ESCURO
+// ==========================================
+function toggleDarkMode() {
+    const body = document.body;
+    const icone = document.getElementById('icone-tema');
+
+    body.classList.toggle('dark');
+
+    const escuro = body.classList.contains('dark');
+    icone.className = escuro ? 'fa fa-sun-o' : 'fa fa-moon-o';
+    localStorage.setItem('farmastock_tema', escuro ? 'dark' : 'light');
+
+    // Ajustar cores dos gráficos (opcional)
+    if (typeof Chart !== 'undefined') {
+        Chart.defaults.color = escuro ? '#e2e8f0' : '#374151';
+        Chart.defaults.borderColor = escuro ? '#334155' : '#e5e7eb';
+
+        // Redesenhar gráficos ativos se existirem
+        if (typeof graficoVendas !== 'undefined' && graficoVendas) graficoVendas.update();
+        if (typeof graficoStock !== 'undefined' && graficoStock) graficoStock.update();
+        if (typeof graficoRanking !== 'undefined' && graficoRanking) graficoRanking.update();
+        if (typeof graficoLucroPeriodo !== 'undefined' && graficoLucroPeriodo) graficoLucroPeriodo.update();
+    }
+}
+
+// Restaurar tema guardado ao carregar
+function aplicarTemaGuardado() {
+    const temaGuardado = localStorage.getItem('farmastock_tema');
+    const icone = document.getElementById('icone-tema');
+
+    if (temaGuardado === 'dark') {
+        document.body.classList.add('dark');
+        if (icone) icone.className = 'fa fa-sun-o';
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.color = '#e2e8f0';
+            Chart.defaults.borderColor = '#334155';
+        }
+    }
+}
 
         function logout() {
           pararTimerInatividade();
