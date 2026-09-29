@@ -939,10 +939,12 @@
                     <label class="block text-sm font-medium mb-1">Email *</label>
                     <input type="email" id="user-email" required class="w-full p-2 border rounded-lg">
                 </div>
-                <div>
                     <label class="block text-sm font-medium mb-1">Senha *</label>
-                    <input type="password" id="user-senha" required class="w-full p-2 border rounded-lg">
-                </div>
+                  <input type="password" id="user-senha" required class="w-full p-2 border rounded-lg" oninput="atualizarForcaSenha()">
+    <p class="text-xs mt-1">Força: <span id="user-senha-forca" class="font-bold text-gray-400">—</span></p>
+    <p class="text-xs text-gray-500 mt-1">Mínimo 6 caracteres, com 1 letra e 1 número</p>
+        </div>
+                
                 <div>
                     <label class="block text-sm font-medium mb-1">Função / Permissão *</label>
                     <select id="user-tipo" required class="w-full p-2 border rounded-lg">
@@ -996,6 +998,44 @@
         let ultimoReciboTexto = '';
       let carrinho = [];
       let ultimaVenda = null;
+
+      // ==========================================
+// ⏱️ TIMEOUT DE SESSÃO (30 minutos inativo)
+// ==========================================
+let timerInatividade = null;
+const TIMEOUT_MINUTOS = 1;
+let ultimaAtividade = Date.now();
+
+function reiniciarTimerInatividade() {
+    ultimaAtividade = Date.now();
+    if (timerInatividade) clearTimeout(timerInatividade);
+    if (!utilizadorAtual) return;
+
+    const ms = TIMEOUT_MINUTOS * 60 * 1000;
+    timerInatividade = setTimeout(() => {
+        const confirmar = confirm(
+            "⏱️ Sessão inativa há " + TIMEOUT_MINUTOS + " minutos.\n\n" +
+            "Clique OK para continuar ou CANCELAR para terminar sessão."
+        );
+        if (confirmar) {
+            reiniciarTimerInatividade();
+        } else {
+            alert("🔒 Sessão terminada por inatividade.");
+            logout();
+        }
+    }, ms);
+}
+
+['click', 'keydown', 'touchstart', 'mousemove', 'scroll'].forEach(evento => {
+    document.addEventListener(evento, () => {
+        if (utilizadorAtual) reiniciarTimerInatividade();
+    }, { passive: true });
+});
+
+function pararTimerInatividade() {
+    if (timerInatividade) clearTimeout(timerInatividade);
+    timerInatividade = null;
+}
 
       // 🛡️ Escapar HTML para prevenir XSS
 function escaparHTML(texto) {
@@ -1053,6 +1093,7 @@ const nomeCompleto = utilizadorAtual.nome || utilizadorAtual.email || 'Utilizado
 document.getElementById('nome-user').textContent = nomeCompleto.split(' ')[0];
 document.getElementById('tipo-user').textContent = tipoUtilizador.toUpperCase();
 aplicarPermissoes(tipoUtilizador);
+              reiniciarTimerInatividade();
 
                 document.getElementById('tela-login').classList.add('hidden');
                 document.getElementById('app-principal').classList.remove('hidden');
@@ -1173,6 +1214,7 @@ aplicarPermissoes(tipoUtilizador);
         });
 
         function logout() {
+          pararTimerInatividade();
             auth.signOut();
         }
 
@@ -3556,6 +3598,63 @@ function partilharFechoWhatsApp() {
     XLSX.writeFile(wb, nomeFicheiro);
           }
 
+      // ==========================================
+// 🔒 VALIDAÇÃO DE SENHA
+// ==========================================
+function validarSenha(senha) {
+    if (!senha || senha.length < 6) {
+        return "• Deve ter pelo menos 6 caracteres";
+    }
+    if (senha.length > 72) {
+        return "• Deve ter no máximo 72 caracteres";
+    }
+    if (!/[a-zA-Z]/.test(senha)) {
+        return "• Deve conter pelo menos 1 letra";
+    }
+    if (!/[0-9]/.test(senha)) {
+        return "• Deve conter pelo menos 1 número";
+    }
+
+    const fracas = [
+        '123456', '1234567', '12345678', '123456789', '1234567890',
+        'password', 'senha', 'qwerty', 'abc123', 'admin', 'admin123',
+        'farmacia', 'farmastock', '111111', '000000', '654321'
+    ];
+    if (fracas.includes(senha.toLowerCase())) {
+        return "• Senha demasiado comum. Escolha outra.";
+    }
+
+    return null; // senha válida
+}
+
+// 🔍 Mostrar força da senha em tempo real (opcional, mas útil)
+function avaliarForcaSenha(senha) {
+    let pontos = 0;
+    if (senha.length >= 6) pontos++;
+    if (senha.length >= 10) pontos++;
+    if (/[a-z]/.test(senha)) pontos++;
+    if (/[A-Z]/.test(senha)) pontos++;
+    if (/[0-9]/.test(senha)) pontos++;
+    if (/[^a-zA-Z0-9]/.test(senha)) pontos++;
+
+    if (pontos <= 2) return { nivel: 'Fraca', cor: 'text-red-600' };
+    if (pontos <= 4) return { nivel: 'Média', cor: 'text-amber-600' };
+    return { nivel: 'Forte', cor: 'text-green-600' };
+}
+
+      function atualizarForcaSenha() {
+    const senha = document.getElementById('user-senha').value;
+    const el = document.getElementById('user-senha-forca');
+    if (!senha) {
+        el.textContent = '—';
+        el.className = 'font-bold text-gray-400';
+        return;
+    }
+    const f = avaliarForcaSenha(senha);
+    el.textContent = f.nivel;
+    el.className = 'font-bold ' + f.cor;
+}
+
         async function carregarListaUtilizadores() {
             if (!['admin','gestor'].includes(tipoUtilizador)) return;
             const snap = await db.collection('utilizadores').get();
@@ -3591,6 +3690,10 @@ function partilharFechoWhatsApp() {
     const nome = document.getElementById('user-nome').value.trim();
     const email = document.getElementById('user-email').value.trim();
     const senha = document.getElementById('user-senha').value;
+
+      // 🔒 Validar política de senha
+const erroSenha = validarSenha(senha);
+if (erroSenha) return alert("❌ Senha inválida:\n\n" + erroSenha);
     const tipo = document.getElementById('user-tipo').value;
 
     let appSecundaria = null;
