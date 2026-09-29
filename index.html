@@ -1876,7 +1876,7 @@ document.getElementById('form-entrada').addEventListener('submit', async (e) => 
 
         await batch.commit();
 
-        alert(`✅ Entrada registada!\n\nStock de "${prod.nome}": ${stockAnterior} → ${stockAnterior + qtd}`);
+        toastSucesso(`Entrada registada! Stock de "${prod.nome}": ${stockAnterior} → ${stockAnterior + qtd}`);
 
         fecharModal('modal-entrada');
 
@@ -1884,7 +1884,7 @@ document.getElementById('form-entrada').addEventListener('submit', async (e) => 
         carregarDadosDashboard().catch(e => console.error(e));
 
     } catch (erro) {
-        alert("❌ Erro: " + erro.message);
+        toastErro("Erro: " + erro.message);
     } finally {
         if (btn) {
             btn.disabled = false;
@@ -2029,7 +2029,7 @@ document.getElementById('form-entrada').addEventListener('submit', async (e) => 
                 fecharModal('modal-produto');
                 await carregarListaProdutos();
                 await carregarDadosDashboard();
-                alert("✅ Produto salvo com sucesso!");
+                toastSucesso("Produto salvo com sucesso!");
             } catch (erro) {
                 alert("❌ Erro: " + erro.message);
             }
@@ -2276,7 +2276,7 @@ const nif = document.getElementById('venda-nif').value.trim();
             btn.disabled = false;
             btn.innerHTML = '<i class="fa fa-check mr-1"></i> Finalizar';
         }
-        return alert("❌ " + erro.message);
+        return toastErro(erro.message);
     }
 
     // ---------- Venda OK: gerar recibo ----------
@@ -2294,7 +2294,7 @@ const nif = document.getElementById('venda-nif').value.trim();
         btn.innerHTML = '<i class="fa fa-check mr-1"></i> Finalizar';
     }
 
-    alert("✅ Venda finalizada com sucesso!");
+    toastSucesso("Venda finalizada com sucesso!");
 
     // Recarregar em background
     carregarListaProdutos().catch(e => console.error("Erro produtos:", e));
@@ -2756,7 +2756,7 @@ transaction.update(vendaRef, {
         carregarDadosDashboard().catch(e => console.error(e));
 
     } catch (erro) {
-        alert("❌ Erro ao anular: " + erro.message);
+        toastErro("Erro ao anular: " + erro.message);
 
         if (btn) {
             btn.disabled = false;
@@ -3850,6 +3850,43 @@ function avaliarForcaSenha(senha) {
     el.className = 'font-bold ' + f.cor;
 }
 
+      // ==========================================
+// 🔔 SISTEMA DE TOASTS
+// ==========================================
+function mostrarToast(mensagem, tipo = 'info', duracao = 3500) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const icones = {
+        sucesso: 'fa-check-circle',
+        erro:    'fa-times-circle',
+        aviso:   'fa-exclamation-triangle',
+        info:    'fa-info-circle'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${tipo}`;
+    toast.innerHTML = `
+        <i class="fa ${icones[tipo] || icones.info}"></i>
+        <span class="toast-texto">${escaparHTML(mensagem)}</span>
+        <button class="toast-fechar" onclick="this.parentElement.remove()">
+            <i class="fa fa-times"></i>
+        </button>
+    `;
+    container.appendChild(toast);
+
+    // Auto-remover
+    setTimeout(() => {
+        toast.classList.add('toast-sair');
+        setTimeout(() => toast.remove(), 250);
+    }, duracao);
+}
+
+function toastSucesso(msg, dur)  { mostrarToast(msg, 'sucesso', dur); }
+function toastErro(msg, dur)     { mostrarToast(msg, 'erro', dur); }
+function toastAviso(msg, dur)    { mostrarToast(msg, 'aviso', dur); }
+function toastInfo(msg, dur)     { mostrarToast(msg, 'info', dur); }
+
         async function carregarListaUtilizadores() {
             if (!['admin','gestor'].includes(tipoUtilizador)) return;
             const snap = await db.collection('utilizadores').get();
@@ -3916,13 +3953,13 @@ if (erroSenha) return alert("❌ Senha inválida:\n\n" + erroSenha);
 
         fecharModal('modal-utilizador');
         await carregarListaUtilizadores();
-        alert("✅ Utilizador criado com sucesso!");
+        toastSucesso("Utilizador criado com sucesso!");
 
     } catch (erro) {
         if (appSecundaria) {
             try { await appSecundaria.delete(); } catch (err) {}
         }
-        alert("❌ Erro ao criar utilizador: " + erro.message);
+        toastErro("Erro ao criar utilizador: " + erro.message);
     }
 });
 
