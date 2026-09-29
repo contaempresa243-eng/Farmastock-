@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /
+
+# FarmaStock - Acesso restrito
+# Esta aplicação é de uso interno.
+# Não indexar.

@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<title>FarmaStock — Manual do Utilizador</title>
+<style>
+  @page { size: A4; margin: 2cm 1.8cm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    color: #1f2937;
+    line-height: 1.6;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #fff;
+  }
+
+  /* ----- CAPA ----- */
+  .capa {
+    text-align: center;
+    padding: 80px 20px;
+    border: 4px solid #0F766E;
+    border-radius: 12px;
+    margin-bottom: 40px;
+    page-break-after: always;
+  }
+  .capa .logo { font-size: 80px; color: #0F766E; margin-bottom: 20px; }
+  .capa h1 { font-size: 42px; color: #0F766E; margin: 10px 0; }
+  .capa h2 { font-size: 20px; color: #6b7280; font-weight: normal; margin: 10px 0 40px; }
+  .capa .subtitulo { font-size: 26px; color: #1f2937; margin: 40px 0 10px; font-weight: 600; }
+  .capa .info { font-size: 14px; color: #6b7280; margin-top: 60px; }
+  .capa .info strong { color: #0F766E; }
+
+  /* ----- ÍNDICE ----- */
+  .indice {
+    page-break-after: always;
+    padding: 20px 0;
+  }
+  .indice h2 { color: #0F766E; border-bottom: 2px solid #0F766E; padding-bottom: 10px; }
+  .indice ol { list-style: none; padding-left: 0; counter-reset: cap; }
+  .indice ol > li {
+    counter-increment: cap;
+    margin: 12px 0;
+    padding: 8px 0;
+    border-bottom: 1px dotted #d1d5db;
+    font-size: 15px;
+  }
+  .indice ol > li::before {
+    content: counter(cap) ". ";
+    font-weight: bold;
+    color: #0F766E;
+  }
+  .indice .sub { font-size: 13px; color: #6b7280; margin-left: 20px; }
+
+  /* ----- CAPÍTULOS ----- */
+  .capitulo {
+    page-break-before: always;
+    margin-top: 20px;
+  }
+  .capitulo:first-of-type { page-break-before: auto; }
+  .capitulo h2 {
+    color: #0F766E;
+    font-size: 26px;
+    border-bottom: 3px solid #0F766E;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  .capitulo h3 {
+    color: #0F766E;
+    font-size: 18px;
+    margin-top: 25px;
+    margin-bottom: 10px;
+  }
+  .capitulo h4 {
+    color: #374151;
+    font-size: 15px;
+    margin-top: 18px;
+    margin-bottom: 8px;
+  }
+  .capitulo p { margin: 10px 0; text-align: justify; }
+  .capitulo ul, .capitulo ol { margin: 10px 0; padding-left: 25px; }
+  .capitulo li { margin: 6px 0; }
+
+  /* ----- CAIXAS ESPECIAIS ----- */
+  .dica, .atencao, .exercicio, .nota {
+    padding: 12px 15px;
+    border-radius: 6px;
+    margin: 15px 0;
+    font-size: 14px;
+  }
+  .dica { background: #ecfdf5; border-left: 4px solid #10b981; }
+  .dica::before { content: "💡 DICA"; display: block; font-weight: bold; color: #047857; margin-bottom: 5px; }
+  .atencao { background: #fef2f2; border-left: 4px solid #dc2626; }
+  .atencao::before { content: "⚠️ ATENÇÃO"; display: block; font-weight: bold; color: #991b1b; margin-bottom: 5px; }
+  .exercicio { background: #eff6ff; border-left: 4px solid #3b82f6; }
+  .exercicio::before { content: "✏️ EXERCÍCIO"; display: block; font-weight: bold; color: #1d4ed8; margin-bottom: 5px; }
+  .nota { background: #f9fafb; border-left: 4px solid #6b7280; }
+  .nota::before { content: "📝 NOTA"; display: block; font-weight: bold; color: #374151; margin-bottom: 5px; }
+
+  /* ----- PASSOS NUMERADOS ----- */
+  .passos { counter-reset: passo; padding-left: 0; list-style: none; }
+  .passos li {
+    counter-increment: passo;
+    position: relative;
+    padding: 8px 0 8px 45px;
+    margin: 8px 0;
+  }
+  .passos li::before {
+    content: counter(passo);
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 30px;
+    height: 30px;
+    background: #0F766E;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+  }
+
+  /* ----- TABELAS ----- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 13px;
+  }
+  th {
+    background: #0F766E;
+    color: #fff;
+    text-align: left;
+    padding: 10px;
+    font-size: 13px;
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f9fafb; }
+
+  /* ----- INTRO ----- */
+  .intro {
+    padding: 20px;
+    background: #f0fdf4;
+    border-radius: 8px;
+    margin: 20px 0;
+  }
+
+  /* ----- RODAPÉ DE PÁGINA ----- */
+  .rodape {
+    text-align: center;
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 40px;
+    padding-top: 15px;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  /* ----- TELA (não impressão) ----- */
+  @media screen {
+    body { box-shadow: 0 0 30px rgba(0,0,0,0.1); min-height: 100vh; }
+  }
+
+  /* ----- IMPRESSÃO ----- */
+  @media print {
+    body { padding: 0; max-width: none; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== CAPA ==================== -->
+<div class="capa">
+  <div class="logo">⚗️</div>
+  <h1>FarmaStock</h1>
+  <h2>Gestão Inteligente de Farmácia</h2>
+  <div class="subtitulo">Manual do Utilizador</div>
+  <p style="font-size:16px;color:#6b7280;">Guia completo para formação de operadores, gestores e administradores</p>
+  <div class="info">
+    <p>Versão 1.0 — <strong>2026</strong></p>
+    <p>Desenvolvido para farmácias em <strong>Angola</strong></p>
+  </div>
+</div>
+
+<!-- ==================== ÍNDICE ==================== -->
+<div class="indice">
+  <h2>Índice</h2>
+  <ol>
+    <li>Introdução ao FarmaStock<div class="sub">O que é, para que serve, quem pode usar</div></li>
+    <li>Primeiros Passos<div class="sub">Login, tipos de utilizador, permissões</div></li>
+    <li>Painel Geral<div class="sub">Resumo de stock, alertas, gráficos</div></li>
+    <li>Gestão de Produtos<div class="sub">Criar, editar, pesquisar, categorias</div></li>
+    <li>Entrada de Stock<div class="sub">Registar compras e novas remessas</div></li>
+    <li>Ponto de Venda (PDV)<div class="sub">Vender, carrinho, pagamento, recibo</div></li>
+    <li>Histórico de Vendas<div class="sub">Consultar e anular vendas</div></li>
+    <li>Fecho de Caixa<div class="sub">Resumo diário para contabilidade</div></li>
+    <li>Relatórios<div class="sub">Stock, vendas, lucro, validades, ranking</div></li>
+    <li>Gestão de Utilizadores<div class="sub">Criar, editar, permissões</div></li>
+    <li>Definições do Sistema<div class="sub">Nome, endereço, NIF, IVA</div></li>
+    <li>Perguntas Frequentes<div class="sub">Dúvidas comuns dos operadores</div></li>
+    <li>Boas Práticas<div class="sub">Recomendações para o dia-a-dia</div></li>
+  </ol>
+</div>
+
+<!-- ==================== CAP 1 ==================== -->
+<div class="capitulo">
+  <h2>1. Introdução ao FarmaStock</h2>
+
+  <div class="intro">
+    <strong>Bem-vindo ao FarmaStock!</strong>
+    <p style="margin-top:10px;">O FarmaStock é um sistema de gestão pensado especificamente para farmácias em Angola. Ajuda a controlar stock, registar vendas, emitir faturas, prevenir ruturas e cumprir as regras fiscais.</p>
+  </div>
+
+  <h3>1.1. O que pode fazer com o FarmaStock</h3>
+  <ul>
+    <li>✅ Registar produtos com lote, validade, categoria e fornecedor</li>
+    <li>✅ Dar entrada de mercadoria e controlar o stock em tempo real</li>
+    <li>✅ Vender múltiplos produtos numa só venda</li>
+    <li>✅ Emitir recibo simples, fatura formal e enviar por WhatsApp</li>
+    <li>✅ Anular vendas com devolução automática de stock</li>
+    <li>✅ Ver relatórios de lucro, stock, validades e produtos mais vendidos</li>
+    <li>✅ Fazer fecho de caixa diário</li>
+    <li>✅ Alertar sobre produtos a vencer e stock baixo</li>
+  </ul>
+
+  <h3>1.2. Quem pode usar</h3>
+  <table>
+    <tr>
+      <th>Perfil</th>
+      <th>O que pode fazer</th>
+    </tr>
+    <tr>
+      <td><strong>Administrador</strong></td>
+      <td>Acesso total. Cria utilizadores, altera definições, vê todos os relatórios, apaga registos.</td>
+    </tr>
+    <tr>
+      <td><strong>Gestor</strong></td>
+      <td>Gere produtos, entradas, vendas, anula, vê relatórios. Não acede às definições.</td>
+    </tr>
+    <tr>
+      <td><strong>Operador/Caixa</strong></td>
+      <td>Apenas vende. Vê produtos, cria vendas e emite recibos/faturas.</td>
+    </tr>
+  </table>
+
+  <div class="dica">
+    Uma farmácia típica tem <strong>1 administrador</strong> (o dono), <strong>1 gestor</strong> (responsável de turno) e <strong>1-3 caixas</strong> (operadores de balcão).
+  </div>
+
+  <h3>1.3. Requisitos técnicos</h3>
+  <ul>
+    <li>Telemóvel, tablet ou computador com browser Chrome/Safari atualizado</li>
+    <li>Ligação à internet (Wi-Fi ou dados móveis)</li>
+    <li>Câmara (opcional, para ler códigos de barras)</li>
+  </ul>
+</div>
+
+<!-- ==================== CAP 2 ==================== -->
+<div class="capitulo">
+  <h2>2. Primeiros Passos</h2>
+
+  <h3>2.1. Como entrar no sistema</h3>
+  <ol class="passos">
+    <li>Abra o navegador e aceda ao endereço da farmácia (ex.: <em>243-eng.github.io</em>)</li>
+    <li>Introduza o seu <strong>email</strong></li>
+    <li>Introduza a sua <strong>senha</strong></li>
+    <li>Clique em <strong>Entrar</strong></li>
+  </ol>
+
+  <div class="atencao">
+    Nunca partilhe a sua senha com colegas. Cada utilizador tem a sua conta individual — isto permite rastrear quem fez cada venda e responsabilizar em caso de erro.
+  </div>
+
+  <h3>2.2. O que vê depois de entrar</h3>
+  <p>Ao entrar, aparece o <strong>Painel Geral</strong>. No topo direito vê:</p>
+  <ul>
+    <li><strong>O seu nome</strong> — confirma que entrou na conta correta</li>
+    <li><strong>A sua função</strong> — ADMIN, GESTOR ou CAIXA</li>
+    <li><strong>Botão de saída</strong> (seta) — para fazer logout</li>
+  </ul>
+
+  <h3>2.3. Fazer logout</h3>
+  <ol class="passos">
+    <li>Clique no ícone da seta no topo direito</li>
+    <li>O sistema volta ao ecrã de login</li>
+  </ol>
+
+  <div class="dica">
+    Faça sempre logout quando terminar o turno, especialmente se o equipamento é partilhado.
+  </div>
+
+  <div class="exercicio">
+    <strong>Pratique:</strong>
+    <ol style="margin-top:8px;">
+      <li>Faça login com o seu email e senha</li>
+      <li>Confirme que vê o seu nome no topo direito</li>
+      <li>Faça logout e login novamente</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== CAP 3 ==================== -->
+<div class="capitulo">
+  <h2>3. Painel Geral</h2>
+
+  <p>O Painel Geral é a primeira coisa que vê. Mostra o estado da farmácia num só olhar.</p>
+
+  <h3>3.1. Cartões de resumo (topo)</h3>
+  <table>
+    <tr><th>Cartão</th><th>O que mostra</th></tr>
+    <tr><td><strong>Total Produtos</strong></td><td>Quantos produtos diferentes existem no sistema</td></tr>
+    <tr><td><strong>Stock Baixo</strong></td><td>Produtos com stock igual ou abaixo do mínimo</td></tr>
+    <tr><td><strong>A Vencer</strong></td><td>Produtos que vão expirar nos próximos 90 dias</td></tr>
+    <tr><td><strong>Lucro do Dia</strong></td><td>Quanto lucrou já hoje (vendas não anuladas)</td></tr>
+  </table>
+
+  <h3>3.2. Valor de stock</h3>
+  <table>
+    <tr><th>Cartão</th><th>Significado</th></tr>
+    <tr><td><strong>Stock a Custo</strong></td><td>Quanto dinheiro tem investido no stock atual</td></tr>
+    <tr><td><strong>Stock a Venda</strong></td><td>Quanto vale o stock se for todo vendido</td></tr>
+    <tr><td><strong>Lucro Potencial</strong></td><td>Lucro se o stock for todo vendido</td></tr>
+  </table>
+
+  <h3>3.3. Gráficos</h3>
+  <ul>
+    <li><strong>Vendas dos últimos 7 dias</strong> — linha temporal para ver tendência</li>
+    <li><strong>Distribuição de Stock</strong> — gráfico circular (disponível/baixo/esgotado)</li>
+  </ul>
+
+  <h3>3.4. Painéis de alerta</h3>
+  <ul>
+    <li><strong>Validades Próximas</strong> — produtos a vencer, com cores (🟢 60-90 dias, 🟡 30-60 dias, 🔴 &lt;30 dias, 🚫 vencido)</li>
+    <li><strong>Reposição Recomendada</strong> — produtos abaixo do mínimo, com botão verde <strong>+</strong> para entrada rápida</li>
+  </ul>
+
+  <div class="dica">
+    O botão <strong>+</strong> no painel de reposição abre o formulário de entrada já com o produto selecionado. Ganha 20 segundos por reposição.
+  </div>
+
+  <div class="exercicio">
+    <strong>Pratique:</strong>
+    <ol style="margin-top:8px;">
+      <li>Identifique quantos produtos tem stock baixo</li>
+      <li>Veja se algum produto está a vencer</li>
+      <li>Clique no botão <strong>+</strong> de um produto em reposição</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== CAP 4 ==================== -->
+<div class="capitulo">
+  <h2>4. Gestão de Produtos</h2>
+
+  <h3>4.1. Criar um produto novo</h3>
+  <ol class="passos">
+    <li>Vá a <strong>Produtos</strong></li>
+    <li>Clique em <strong>Novo Produto</strong></li>
+    <li>Preencha os campos:
+      <ul style="margin-top:6px;">
+        <li><strong>Código de barras</strong> (opcional) — pode usar o botão <em>Ler Código</em></li>
+        <li><strong>Nome do produto</strong> — obrigatório</li>
+        <li><strong>Lote</strong> e <strong>Validade</strong> — obrigatórios</li>
+        <li><strong>Stock atual</strong> e <strong>Stock mínimo</strong></li>
+        <li><strong>Preço de compra</strong> e <strong>Preço de venda</strong></li>
+        <li><strong>Categoria</strong> — analgésico, antibiótico, etc.</li>
+        <li><strong>Fornecedor principal</strong> (opcional)</li>
+        <li>Marque <strong>Requer receita médica</strong> se aplicável</li>
+      </ul>
+    </li>
+    <li>Confirme o <strong>lucro unitário</strong> calculado automaticamente</li>
+    <li>Clique <strong>Salvar</strong></li>
+  </ol>
+
+  <h3>4.2. Editar um produto</h3>
+  <ol class="passos">
+    <li>Na tabela de produtos, clique no ícone ✏️ do produto</li>
+    <li>Altere os campos que precisa</li>
+    <li>Clique <strong>Salvar</strong></li>
+  </ol>
+
+  <h3>4.3. Pesquisar e filtrar</h3>
+  <ul>
+    <li><strong>Barra de pesquisa</strong> — procura por nome, lote ou código de barras</li>
+    <li><strong>Filtro de categoria</strong> — mostra só uma categoria</li>
+  </ul>
+
+  <h3>4.4. Ler código de barras</h3>
+  <ol class="passos">
+    <li>Clique em <strong>Ler Código</strong></li>
+    <li>Aponte a câmara traseira ao código</li>
+    <li>O sistema preenche automaticamente o código</li>
+  </ol>
+
+  <div class="atencao">
+    Se apagar um produto, ele desaparece do sistema. Vendas antigas continuam a existir no histórico, mas o stock não poderá mais ser gerido. Prefira <strong>editar stock para 0</strong> em vez de apagar.
+  </div>
+
+  <div class="dica">
+    Use a categoria <strong>"Antibiótico"</strong> para produtos que requerem receita. Assim encontra-os mais depressa e o aviso aparece automaticamente no PDV.
+  </div>
+
+  <div class="exercicio">
+    <strong>Pratique:</strong>
+    <ol style="margin-top:8px;">
+      <li>Crie um produto <em>Paracetamol 500mg</em> com stock 20, custo 100 Kz, venda 250 Kz</li>
+      <li>Edite-o e mude o stock para 15</li>
+      <li>Pesquise por "para" na barra de pesquisa</li>
+      <li>Filtre por categoria "Analgésico"</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== CAP 5 ==================== -->
+<div class="capitulo">
+  <h2>5. Entrada de Stock</h2>
+
+  <p>Use esta função sempre que chega mercadoria nova do fornecedor.</p>
+
+  <h3>5.1. Registar uma entrada</h3>
+  <ol class="passos">
+    <li>Vá a <strong>Produtos</strong> → botão verde <strong>Entrada</strong></li>
+    <li>Selecione o <strong>produto</strong> (aparece o stock atual e o custo atual)</li>
+    <li>Indique a <strong>quantidade</strong> recebida</li>
+    <li>Confirme/atualize o <strong>preço de compra</strong> (se mudou)</li>
+    <li>Opcionalmente atualize o <strong>preço de venda</strong></li>
+    <li>Preencha <strong>fornecedor</strong> e <strong>observações</strong> (nº fatura, lote)</li>
+    <li>Confirme o <strong>custo total</strong> calculado</li>
+    <li>Clique <strong>Registar Entrada</strong></li>
+  </ol>
+
+  <h3>5.2. O que acontece por baixo</h3>
+  <ul>
+    <li>O <strong>stock aumenta</strong> pela quantidade recebida</li>
+    <li>O <strong>custo e preço de venda</strong> são atualizados (se alterou)</li>
+    <li>É criado um <strong>registo histórico</strong> na coleção <em>entradas</em> do Firestore, com data, operador, fornecedor e valores</li>
+  </ul>
+
+  <div class="dica">
+    Se o preço do fornecedor subiu 20%, atualize o preço de venda na mesma entrada. Assim evita vender com margem negativa.
+  </div>
+
+  <div class="exercicio">
+    <strong>Pratique:</strong>
+    <ol style="margin-top:8px;">
+      <li>Registe entrada de 50 unidades de Paracetamol, custo 120 Kz</li>
+      <li>Confirme que o stock aumentou 50</li>
+      <li>Confirme que o custo foi atualizado para 120 Kz</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== CAP 6 ==================== -->
+<div class="capitulo">
+  <h2>6. Ponto de Venda (PDV)</h2>
+
+  <p>É aqui que passa a maior parte do tempo. O PDV funciona como um carrinho de supermercado.</p>
+
+  <h3>6.1. Fazer uma venda com 1 produto</h3>
+  <ol class="passos">
+    <li>Vá a <strong>Vendas</strong></li>
+    <li>No campo <strong>Adicionar produto</strong>, selecione o produto</li>
+    <li>O <strong>preço unitário</strong> aparece automaticamente</li>
+    <li>Indique a <strong>quantidade</strong></li>
+    <li>Clique <strong>Adicionar</strong> — o produto vai para o carrinho</li>
+    <li>Introduza o <strong>Valor Pago</strong> pelo cliente</li>
+    <li>O <strong>Troco</strong> calcula-se automaticamente</li>
+    <li>Clique <strong>Finalizar</strong></li>
+  </ol>
+
+  <h3>6.2. Fazer uma venda com vários produtos</h3>
+  <ol class="passos">
+    <li>Repita os passos 2-5 para cada produto</li>
+    <li>O carrinho mostra todos os itens com subtotais</li>
+    <li>O <strong>Total</strong> atualiza automaticamente</li>
+    <li>Introduza o Valor Pago e finalize</li>
+  </ol>
+
+  <h3>6.3. Remover um item do carrinho</h3>
+  <ul>
+    <li>Clique no <strong>X vermelho</strong> ao lado do item</li>
+    <li>Para limpar tudo, clique em <strong>Limpar</strong></li>
+  </ul>
+
+  <h3>6.4. NIF do cliente (fatura)</h3>
+  <ol class="passos">
+    <li>Preencha o campo <strong>NIF do Cliente</strong> (opcional)</li>
+    <li>Deixe vazio se o cliente não pediu fatura</li>
+    <li>Após finalizar, clique em <strong>Fatura</strong> para gerar o PDF formal</li>
+  </ol>
+
+  <h3>6.5. Aviso de receita médica</h3>
+  <p>Se o produto estiver marcado como <strong>requer receita</strong>, aparece um aviso amarelo. Confirme a receita física antes de finalizar.</p>
+
+  <h3>6.6. Emitir o comprovativo</h3>
+  <table>
+    <tr><th>Botão</th><th>O que faz</th></tr>
+    <tr><td><strong>Recibo</strong></td><td>Imprime talão simples para o cliente</td></tr>
+    <tr><td><strong>Fatura</strong></td><td>Gera PDF formal com NIF e IVA discriminado</td></tr>
+    <tr><td><strong>WhatsApp</strong></td><td>Envia o recibo por WhatsApp</td></tr>
+    <tr><td><strong>SMS</strong></td><td>Envia o recibo por SMS</td></tr>
+  </table>
+
+  <div class="atencao">
+    O sistema verifica automaticamente se há stock suficiente. Se tentar vender mais do que existe, a venda é recusada e o stock <strong>não é alterado</strong>. Esta proteção evita stock negativo.
+  </div>
+
+  <div class="dica">
+    Se o produto aparecer vazio após selecionar, é porque não tem stock. Consulte o Painel → Reposição Recomendada.
+  </div>
+
+  <div class="exercicio">
+    <strong>Pratique:</strong>
+    <ol style="margin-top:8px;">
+      <li>Faça uma venda com 2 produtos diferentes</li>
+      <li>Remova 1 item e volte a adicioná-lo</li>
+      <li>Preencha o NIF com 5001234567</li>
+      <li>Finalize e clique em Fatura</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== CAP 7 ==================== -->
+<div class="capitulo">
+  <h2>7. Histórico de Vendas</h2>
+
+  <h3>7.1. Consultar vendas</h3>
+  <ol class="passos">
+    <li>Vá a <strong>Histórico</strong></li>
+    <li>Escolha o filtro: <strong>Hoje</strong>, <strong>Últimos 7 dias</strong>, <strong>Últimos 30 dias</strong> ou <strong>Tudo</strong></li>
+    <li>Clique <strong>Atualizar</strong></li>
+  </ol>
+
+  <h3>7.2. Resumo no topo</h3>
+  <ul>
+    <li><strong>Vendas</strong> — número de vendas no período</li>
+    <li><strong>Faturação</strong> — soma dos totais</li>
+    <li><strong>Lucro</strong> — soma dos lucros</li>
+    <li><strong>Anuladas</strong> — quantas foram canceladas</li>
+  </ul>
+
+  <h3>7.3. Anular uma venda</h3>
+  <ol class="passos">
+    <li>Encontre a venda na lista</li>
+    <li>Clique no botão vermelho <strong>Anular</strong></li>
+    <li>Confirme no popup</li>
+    <li>O stock dos produtos é <strong>devolvido automaticamente</strong></li>
+    <li>A venda passa a aparecer com a etiqueta <strong>ANULADA</strong></li>
+  </ol>
+
+  <div class="atencao">
+    Anular uma venda é uma operação <strong>sensível</strong>. Só Admin e Gestor podem fazê-lo. Fica registado quem anulou e quando. Nunca use a anulação para "corrigir" vendas antigas — para isso, faça uma venda nova negativa.
+  </div>
+
+  <div class="exercicio">
+    <strong>Pratique:</strong>
+    <ol style="margin-top:8px;">
+      <li>Consulte as vendas de hoje</li>
+      <li>Anule a última venda e confirme que o stock aumentou</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== CAP 8 ==================== -->
+<div class="capitulo">
+  <h2>8. Fecho de Caixa</h2>
+
+  <p>O fecho de caixa é o resumo do dia. É o documento que o operador entrega ao gestor no fim do turno.</p>
+
+  <h3>8.1. Gerar o fecho</h3>
+  <ol class="passos">
+    <li>Vá a <strong>Fecho</strong></li>
+    <li>Escolha a <strong>data</strong> (por omissão, hoje)</li>
+    <li>Clique <strong>Gerar Fecho</strong></li>
+  </ol>
+
+  <h3>8.2. O que o fecho mostra</h3>
+  <ul>
+    <li><strong>Nº de vendas</strong> realizadas no dia</li>
+    <li><strong>Faturação total</strong> e <strong>lucro total</strong></li>
+    <li><strong>Total entregue</strong> (dinheiro recebido) e <strong>total trocado</strong></li>
+    <li><strong>Faturação líquida</strong></li>
+    <li><strong>Vendas por operador</strong> — quem vendeu quanto</li>
+    <li><strong>Top produtos do dia</strong></li>
+  </ul>
+
+  <h3>8.3. Imprimir e partilhar</h3>
+  <ul>
+    <li><strong>Imprimir Fecho</strong> — gera PDF formatado com espaços para assinatura</li>
+    <li><strong>Enviar WhatsApp</strong> — envia resumo por mensagem</li>
+  </ul>
+
+  <div class="dica">
+    Imprima 2 cópias do fecho no fim do dia: uma fica com o operador, outra vai para a contabilidade. Ambas assinadas pelo operador e pelo gestor.
+  </div>
+
+  <div class="exercicio">
+    <strong>Pratique:</strong>
+    <ol style="margin-top:8px;">
+      <li>Gere o fecho de hoje</li>
+      <li>Identifique o operador que mais vendeu</li>
+      <li>Imprima o PDF</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== CAP 9 ==================== -->
+<div class="capitulo">
+  <h2>9. Relatórios</h2>
+
+  <p>Na secção <strong>Relatórios</strong> encontram-se 6 análises, todas exportáveis em PDF e Excel.</p>
+
+  <h3>9.1. Stock Completo</h3>
+  <p>Lista todos os produtos com lote, validade, stock, custo e preço de venda. Mostra o <strong>valor total do stock</strong> (a custo e a venda).</p>
+
+  <h3>9.2. Histórico de Vendas</h3>
+  <p>Todas as vendas com data, recibo, operador, produtos, total e lucro. Ideal para reconciliação bancária.</p>
+
+  <h3>9.3. Lucro e Margem</h3>
+  <p>Cada venda com o respetivo lucro. Mostra o <strong>lucro acumulado</strong> do período.</p>
+
+  <h3>9.4. Controlo de Validades</h3>
+  <p>Produtos a vencer nos próximos 30 dias. Ordenados por urgência.</p>
+
+  <h3>9.5. Produtos Mais Vendidos (Ranking)</h3>
+  <p>Ranking ordenado por quantidade. Tem filtro (hoje/7 dias/30 dias/ano/tudo), gráfico de barras top 5 e medalhas 🥇🥈🥉.</p>
+
+  <h3>9.6. Lucro por Período</h3>
+  <p>Gráfico de evolução do lucro (linha) + tabela diária. Mostra <strong>margem média</strong> e <strong>melhor dia</strong>.</p>
+
+  <h3>9.7. Exportar PDF e Excel</h3>
+  <ol class="passos">
+    <li>Gere o relatório desejado</li>
+    <li>Clique em <strong>PDF</strong> (vermelho) ou <strong>Excel</strong> (verde)</li>
+    <li>O ficheiro é descarregado automaticamente</li>
+  </ol>
+
+  <div class="dica">
+    Use o <strong>Excel</strong> para contabilidade (pode editar) e o <strong>PDF</strong> para arquivo/auditoria (não editável).
+  </div>
+
+  <div class="exercicio">
+    <strong>Pratique:</strong>
+    <ol style="margin-top:8px;">
+      <li>Gere o Ranking de produtos mais vendidos dos últimos 7 dias</li>
+      <li>Exporte para PDF</li>
+      <li>Mude o filtro para "Últimos 30 dias" e exporte para Excel</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ==================== CAP 10 ==================== -->
+<div class="capitulo">
+  <h2>10. Gestão de Utilizadores</h2>
+
+  <div class="atencao">
+    Apenas <strong>Admin</strong> e <strong>Gestor</strong> podem ver esta secção.
+  </div>
+
+  <h3>10.1. Criar um novo utilizador</h3>
+  <ol class="passos">
+    <li>Vá a <strong>Utilizadores</strong> → <strong>Novo Utilizador</strong></li>
+    <li>Preencha <strong>Nome Completo</strong></li>
+    <li>Introduza <strong>Email</strong> — use um email real (Gmail, etc.)</li>
+    <li>Defina uma <strong>Senha</strong> com pelo menos 6 caracteres</li>
+    <li>Escolha a <strong>Função</strong>: Administrador, Gestor ou Operador/Caixa</li>
+    <li>Clique <strong>Criar Conta</strong></li>
+  </ol>
+
+  <h3>10.2. Apagar um utilizador</h3>
+  <ol class="passos">
+    <li>Na tabela, clique no 🗑️ ao lado do utilizador</li>
+    <li>Confirme</li>
+  </ol>
+
+  <div class="nota">
+    O utilizador perde acesso ao login, mas as vendas que fez ficam registadas no histórico. O nome continua visível nas vendas antigas.
+  </div>
+
+  <div class="dica">
+    <strong>Anote sempre:</strong> email + senha + tipo em papel antes de criar a conta. Se o utilizador esquecer a senha e o email for falso, é necessário recriar a conta.
+  </div>
+</div>
+
+<!-- ==================== CAP 11 ==================== -->
+<div class="capitulo">
+  <h2>11. Definições do Sistema</h2>
+
+  <div class="atencao">
+    Apenas o <strong>Administrador</strong> pode alterar as definições.
+  </div>
+
+  <h3>11.1. Campos configuráveis</h3>
+  <table>
+    <tr><th>Campo</th><th>Utilização</th></tr>
+    <tr><td><strong>Nome da Farmácia</strong></td><td>Aparece no topo, nos recibos e nas faturas</td></tr>
+    <tr><td><strong>Endereço</strong></td><td>Aparece no cabeçalho dos documentos</td></tr>
+    <tr><td><strong>Telefone / WhatsApp</strong></td><td>Aparece na fatura e permite contacto do cliente</td></tr>
+    <tr><td><strong>NIF da Farmácia</strong></td><td>Obrigatório na fatura para efeitos fiscais</td></tr>
+    <tr><td><strong>Taxa de IVA (%)</strong></td><td>14% é o padrão em Angola. Aparece no cálculo da fatura</td></tr>
+  </table>
+
+  <h3>11.2. Guardar as definições</h3>
+  <ol class="passos">
+    <li>Preencha os campos</li>
+    <li>Clique <strong>Salvar Definições</strong></li>
+    <li>O sistema aplica imediatamente em todos os documentos futuros</li>
+  </ol>
+
+  <div class="dica">
+    Preencha tudo no primeiro dia. Depois, recibos e faturas saem profissionais sem mais intervenção.
+  </div>
+</div>
+
+<!-- ==================== CAP 12 - FAQ ==================== -->
+<div class="capitulo">
+  <h2>12. Perguntas Frequentes</h2>
+
+  <h4>Não consigo entrar. O que fazer?</h4>
+  <p>Verifique se o email e a senha estão corretos. Se aparecer "credencial incorreta", contacte o administrador. Se o email foi inventado, a conta não pode ser recuperada automaticamente.</p>
+
+  <h4>Um produto desapareceu da lista. Porquê?</h4>
+  <p>Pode ter sido apagado por engano ou o filtro de categoria está ativo. Verifique o filtro no topo.</p>
+
+  <h4>Aparece "Stock insuficiente". O que significa?</h4>
+  <p>A quantidade que está a tentar vender é maior que o stock registado. Confirme na secção Produtos se o stock foi atualizado corretamente.</p>
+
+  <h4>Como faço uma devolução de cliente?</h4>
+  <p>Vá a Histórico, encontre a venda e clique em <strong>Anular</strong>. O stock dos produtos é devolvido automaticamente.</p>
+
+  <h4>O recibo/fatura não está a sair bem. O que fazer?</h4>
+  <p>Verifique se as Definições estão preenchidas (nome, endereço, NIF, IVA). Recibos com dados em falta saem com espaços vazios.</p>
+
+  <h4>Posso usar a app em dois telemóveis ao mesmo tempo?</h4>
+  <p>Sim. Cada utilizador pode entrar no seu dispositivo. As vendas sincronizam automaticamente entre todos.</p>
+
+  <h4>A app funciona sem internet?</h4>
+  <p>Parcialmente. As páginas já visitadas ficam em cache, mas vendas e leituras de stock precisam de ligação.</p>
+
+  <h4>Como faço backup dos dados?</h4>
+  <p>O sistema faz backup automático a cada 7 dias (apenas para Administradores). Também pode exportar relatórios para Excel como cópia.</p>
+
+  <h4>Esqueci-me da senha. Como recupero?</h4>
+  <p>Se o email for real, clique em <strong>Esqueceu a senha?</strong> no ecrã de login e receba o link. Se o email foi inventado, contacte o Administrador.</p>
+
+  <h4>Posso vender um produto que está vencido?</h4>
+  <p>Tecnicamente sim, mas não deve. O sistema alerta sobre produtos a vencer, mas não bloqueia a venda. A responsabilidade é do operador.</p>
+</div>
+
+<!-- ==================== CAP 13 - BOAS PRÁTICAS ==================== -->
+<div class="capitulo">
+  <h2>13. Boas Práticas no Dia-a-Dia</h2>
+
+  <h3>13.1. No início do turno</h3>
+  <ul>
+    <li>Faça login com a sua conta individual</li>
+    <li>Verifique o Painel: há produtos a vencer ou em falta?</li>
+    <li>Confirme que o stock físico bate com o do sistema</li>
+  </ul>
+
+  <h3>13.2. Durante as vendas</h3>
+  <ul>
+    <li>Confirme sempre o valor pago antes de finalizar</li>
+    <li>Pergunte ao cliente se quer NIF para fatura</li>
+    <li>Imprima ou envie o recibo — é prova da venda</li>
+    <li>Nunca feche a venda antes de confirmar a receita se o produto a exige</li>
+  </ul>
+
+  <h3>13.3. No fim do turno</h3>
+  <ul>
+    <li>Gere o <strong>Fecho de Caixa</strong> do dia</li>
+    <li>Compare o dinheiro em caixa com o "Total Entregue" do fecho</li>
+    <li>Imprima 2 cópias: uma para si, outra para o gestor</li>
+    <li>Faça logout</li>
+  </ul>
+
+  <h3>13.4. Todas as semanas</h3>
+  <ul>
+    <li>Contagem física de pelo menos 10 produtos aleatórios</li>
+    <li>Verificação de produtos próximos de expirar</li>
+    <li>Revisão do relatório de <strong>Produtos Mais Vendidos</strong></li>
+    <li>Ajustar stocks mínimos dos produtos que esgotam frequentemente</li>
+  </ul>
+
+  <h3>13.5. Todos os meses</h3>
+  <ul>
+    <li>Contagem completa do stock físico vs. sistema</li>
+    <li>Análise de <strong>Lucro por Período</strong> (mensal)</li>
+    <li>Verificação de utilizadores ativos (remover contas de pessoas que saíram)</li>
+    <li>Exportar relatórios para arquivo em Excel</li>
+  </ul>
+
+  <div class="dica">
+    Uma farmácia organizada faz o fecho de caixa <strong>todos os dias</strong> e a contagem de stock <strong>todas as semanas</strong>. Isto evita surpresas no final do mês.
+  </div>
+</div>
+
+<!-- ==================== FIM ==================== -->
+<div class="rodape">
+  <p><strong>FarmaStock — Manual do Utilizador</strong></p>
+  <p>Versão 1.0 — 2026</p>
+  <p>Para dúvidas técnicas, contacte o administrador do sistema.</p>
+</div>
+
+</body>
+</html>
