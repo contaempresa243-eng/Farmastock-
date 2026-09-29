@@ -165,6 +165,22 @@ body.dark .text-emerald-700 { color: #6EE7B7 !important; }
 /* Painéis de alerta em modo escuro — fundo mais suave */
 body.dark .bg-amber-50 { background: #292015 !important; border-color: #78350f !important; }
 body.dark .bg-red-50   { background: #2a1414 !important; border-color: #7f1d1d !important; }
+      
+      /* Forçar centragem dos modais em modo escuro */
+body.dark #modal-utilizador:not(.hidden),
+body.dark #modal-produto:not(.hidden),
+body.dark #modal-entrada:not(.hidden) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+body.dark #modal-utilizador > div,
+body.dark #modal-produto > div,
+body.dark #modal-entrada > div {
+    width: 100% !important;
+    max-width: 480px !important;
+      }
 /* Scroll suave */
 body { transition: background-color 0.3s ease, color 0.3s ease; }
 
