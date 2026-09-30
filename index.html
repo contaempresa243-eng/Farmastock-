@@ -2176,7 +2176,7 @@ async function adicionarAoCarrinho() {
         const qtdTotal = (existente ? existente.quantidade : 0) + qtd;
 
         if (qtdTotal > p.stock) {
-            return alert(`Stock insuficiente! Disponível: ${p.stock}`);
+            return toastErro(`Stock insuficiente! Disponível: ${p.stock}`);
         }
 
         if (existente) {
@@ -2285,7 +2285,7 @@ function atualizarTroco() {
     const pago = parseFloat(document.getElementById('venda-pago').value) || 0;
 const nif = document.getElementById('venda-nif').value.trim();
     if (pago < total) {
-        return alert(`❌ O valor pago (${pago.toFixed(2)} Kz) é inferior ao total (${total.toFixed(2)} Kz).`);
+        return toastErro(`O valor pago (${pago.toFixed(2)} Kz) é inferior ao total (${total.toFixed(2)} Kz).`);
     }
 
     // Feedback visual
@@ -3967,6 +3967,36 @@ function toastSucesso(msg, dur)  { mostrarToast(msg, 'sucesso', dur); }
 function toastErro(msg, dur)     { mostrarToast(msg, 'erro', dur); }
 function toastAviso(msg, dur)    { mostrarToast(msg, 'aviso', dur); }
 function toastInfo(msg, dur)     { mostrarToast(msg, 'info', dur); }
+
+      // ==========================================
+// 🔄 SUBSTITUIÇÃO AUTOMÁTICA DE ALERT() POR TOASTS
+// ==========================================
+// A partir daqui, qualquer `alert("...")` na app vira toast automaticamente.
+// Mantém o mesmo texto, apenas troca o método de apresentação.
+window.alert = function (mensagem) {
+    try {
+        const texto = String(mensagem == null ? '' : mensagem);
+
+        // Detetar tipo pelo prefixo emoji
+        if (texto.startsWith('✅')) {
+            toastSucesso(texto.replace('✅', '').trim());
+        } else if (texto.startsWith('❌')) {
+            toastErro(texto.replace('❌', '').trim());
+        } else if (texto.startsWith('⚠️')) {
+            toastAviso(texto.replace('⚠️', '').trim());
+        } else if (texto.startsWith('🔒')) {
+            toastAviso(texto.replace('🔒', '').trim());
+        } else if (texto.startsWith('💡') || texto.startsWith('ℹ️')) {
+            toastInfo(texto.replace(/[💡ℹ️]/g, '').trim());
+        } else {
+            toastInfo(texto);
+        }
+    } catch (e) {
+        console.error('Erro no wrapper de alert:', e);
+    }
+    return true;
+};
+
 
         async function carregarListaUtilizadores() {
             if (!['admin','gestor'].includes(tipoUtilizador)) return;
