@@ -183,8 +183,9 @@
   <h2>Gestão Inteligente de Farmácia</h2>
   <div class="subtitulo">Manual do Utilizador</div>
   <p style="font-size:16px;color:#6b7280;">Guia completo para formação de operadores, gestores e administradores</p>
+  <p style="font-size:13px;color:#9ca3af;margin-top:8px;">Atualizado com tema escuro, notificações e segurança avançada</p>
   <div class="info">
-    <p>Versão 1.0 — <strong>2026</strong></p>
+    <p>Versão 1.1 — <strong>2026</strong></p>
     <p>Desenvolvido para farmácias em <strong>Angola</strong></p>
   </div>
 </div>
@@ -194,15 +195,15 @@
   <h2>Índice</h2>
   <ol>
     <li>Introdução ao FarmaStock<div class="sub">O que é, para que serve, quem pode usar</div></li>
-    <li>Primeiros Passos<div class="sub">Login, tipos de utilizador, permissões</div></li>
+    <li>Primeiros Passos<div class="sub">Login, permissões, tema escuro, segurança de sessão</div></li>
     <li>Painel Geral<div class="sub">Resumo de stock, alertas, gráficos</div></li>
     <li>Gestão de Produtos<div class="sub">Criar, editar, pesquisar, categorias</div></li>
     <li>Entrada de Stock<div class="sub">Registar compras e novas remessas</div></li>
-    <li>Ponto de Venda (PDV)<div class="sub">Vender, carrinho, pagamento, recibo</div></li>
+    <li>Ponto de Venda (PDV)<div class="sub">Vender, carrinho, pagamento, notificações, recibo</div></li>
     <li>Histórico de Vendas<div class="sub">Consultar e anular vendas</div></li>
     <li>Fecho de Caixa<div class="sub">Resumo diário para contabilidade</div></li>
     <li>Relatórios<div class="sub">Stock, vendas, lucro, validades, ranking</div></li>
-    <li>Gestão de Utilizadores<div class="sub">Criar, editar, permissões</div></li>
+    <li>Gestão de Utilizadores<div class="sub">Criar, requisitos de senha, permissões</div></li>
     <li>Definições do Sistema<div class="sub">Nome, endereço, NIF, IVA</div></li>
     <li>Perguntas Frequentes<div class="sub">Dúvidas comuns dos operadores</div></li>
     <li>Boas Práticas<div class="sub">Recomendações para o dia-a-dia</div></li>
@@ -228,6 +229,7 @@
     <li>✅ Ver relatórios de lucro, stock, validades e produtos mais vendidos</li>
     <li>✅ Fazer fecho de caixa diário</li>
     <li>✅ Alertar sobre produtos a vencer e stock baixo</li>
+    <li>✅ Alternar entre tema claro e tema escuro</li>
   </ul>
 
   <h3>1.2. Quem pode usar</h3>
@@ -283,6 +285,7 @@
   <ul>
     <li><strong>O seu nome</strong> — confirma que entrou na conta correta</li>
     <li><strong>A sua função</strong> — ADMIN, GESTOR ou CAIXA</li>
+    <li><strong>Botão do tema</strong> (lua/sol) — alterna claro/escuro</li>
     <li><strong>Botão de saída</strong> (seta) — para fazer logout</li>
   </ul>
 
@@ -296,11 +299,41 @@
     Faça sempre logout quando terminar o turno, especialmente se o equipamento é partilhado.
   </div>
 
+  <h3>2.4. Alternar entre tema claro e tema escuro</h3>
+  <p>O FarmaStock tem dois temas visuais, para se adaptar ao ambiente e à preferência do utilizador:</p>
+  <ul>
+    <li><strong>☀️ Tema claro</strong> — fundo branco, ideal para ambientes bem iluminados</li>
+    <li><strong>🌙 Tema escuro</strong> — fundo azul-escuro, ideal para turnos noturnos ou ambientes com pouca luz</li>
+  </ul>
+  <p>O botão de alternância está no <strong>canto superior direito</strong>, ao lado do botão de logout:</p>
+  <ul>
+    <li>Quando está em tema claro, o ícone mostra uma <strong>lua 🌙</strong></li>
+    <li>Quando está em tema escuro, o ícone mostra um <strong>sol ☀️</strong></li>
+    <li>Basta clicar no ícone para mudar instantaneamente</li>
+  </ul>
+  <div class="dica">
+    A preferência é <strong>guardada no telemóvel</strong>. Se fechar e reabrir a app, mantém o tema que escolheu. Cada utilizador tem a sua preferência individual.
+  </div>
+
+  <h3>2.5. Segurança de sessão</h3>
+  <p>Por segurança, a app <strong>termina sessão automaticamente</strong> após 30 minutos de inatividade.</p>
+  <p>Se o telemóvel ficar esquecido no balcão sem ninguém usar:</p>
+  <ul>
+    <li>Ao fim de <strong>30 minutos</strong>, aparece um aviso: <em>"Sessão inativa há 30 minutos"</em></li>
+    <li>Se clicar <strong>OK</strong> → a sessão continua ativa</li>
+    <li>Se clicar <strong>Cancelar</strong> → volta automaticamente ao ecrã de login</li>
+    <li>Se não responder durante 1 minuto, o sistema também faz logout</li>
+  </ul>
+  <div class="atencao">
+    Nunca deixe o telemóvel no balcão sem sessão terminada. Faça sempre <strong>logout</strong> quando terminar o turno, especialmente se o equipamento é partilhado entre colegas.
+  </div>
+
   <div class="exercicio">
     <strong>Pratique:</strong>
     <ol style="margin-top:8px;">
       <li>Faça login com o seu email e senha</li>
       <li>Confirme que vê o seu nome no topo direito</li>
+      <li>Clique no ícone da lua 🌙 e confirme que o tema muda</li>
       <li>Faça logout e login novamente</li>
     </ol>
   </div>
@@ -499,7 +532,41 @@
   <h3>6.5. Aviso de receita médica</h3>
   <p>Se o produto estiver marcado como <strong>requer receita</strong>, aparece um aviso amarelo. Confirme a receita física antes de finalizar.</p>
 
-  <h3>6.6. Emitir o comprovativo</h3>
+  <h3>6.6. Notificações do sistema</h3>
+  <p>O FarmaStock comunica através de <strong>notificações visuais</strong> (chamadas "toasts") que aparecem no <strong>canto superior direito</strong> do ecrã e desaparecem sozinhas após alguns segundos.</p>
+  <p>Existem 4 tipos de notificações:</p>
+  <table>
+    <tr>
+      <th>Cor</th>
+      <th>Tipo</th>
+      <th>Quando aparece</th>
+    </tr>
+    <tr>
+      <td><span style="color:#16A34A;">🟢 Verde</span></td>
+      <td>Sucesso</td>
+      <td>Venda finalizada, produto salvo, entrada registada</td>
+    </tr>
+    <tr>
+      <td><span style="color:#DC2626;">🔴 Vermelho</span></td>
+      <td>Erro</td>
+      <td>Valor insuficiente, stock insuficiente, erro de acesso</td>
+    </tr>
+    <tr>
+      <td><span style="color:#F59E0B;">🟠 Laranja</span></td>
+      <td>Aviso</td>
+      <td>Carrinho vazio, campos em falta</td>
+    </tr>
+    <tr>
+      <td><span style="color:#0F766E;">🔵 Teal</span></td>
+      <td>Informação</td>
+      <td>Mensagens neutras do sistema</td>
+    </tr>
+  </table>
+  <div class="dica">
+    As notificações <strong>não bloqueiam a operação</strong>. Pode continuar a trabalhar imediatamente, sem ter de clicar em "OK". Se quiser fechar uma notificação mais cedo, clique no <strong>X</strong> à direita.
+  </div>
+
+  <h3>6.7. Emitir o comprovativo</h3>
   <table>
     <tr><th>Botão</th><th>O que faz</th></tr>
     <tr><td><strong>Recibo</strong></td><td>Imprime talão simples para o cliente</td></tr>
@@ -509,7 +576,7 @@
   </table>
 
   <div class="atencao">
-    O sistema verifica automaticamente se há stock suficiente. Se tentar vender mais do que existe, a venda é recusada e o stock <strong>não é alterado</strong>. Esta proteção evita stock negativo.
+    O sistema verifica automaticamente se há stock suficiente. Se tentar vender mais do que existe, a venda é recusada com notificação vermelha e o stock <strong>não é alterado</strong>. Esta proteção evita stock negativo.
   </div>
 
   <div class="dica">
@@ -523,6 +590,7 @@
       <li>Remova 1 item e volte a adicioná-lo</li>
       <li>Preencha o NIF com 5001234567</li>
       <li>Finalize e clique em Fatura</li>
+      <li>Repare na notificação verde que aparece no topo</li>
     </ol>
   </div>
 </div>
@@ -669,12 +737,46 @@
     <li>Vá a <strong>Utilizadores</strong> → <strong>Novo Utilizador</strong></li>
     <li>Preencha <strong>Nome Completo</strong></li>
     <li>Introduza <strong>Email</strong> — use um email real (Gmail, etc.)</li>
-    <li>Defina uma <strong>Senha</strong> com pelo menos 6 caracteres</li>
+    <li>Defina uma <strong>Senha</strong> que cumpra os requisitos (ver secção 10.2)</li>
     <li>Escolha a <strong>Função</strong>: Administrador, Gestor ou Operador/Caixa</li>
     <li>Clique <strong>Criar Conta</strong></li>
   </ol>
 
-  <h3>10.2. Apagar um utilizador</h3>
+  <h3>10.2. Requisitos de senha</h3>
+  <p>Ao criar uma conta, a senha deve cumprir estes requisitos mínimos:</p>
+  <ul>
+    <li>✅ Pelo menos <strong>6 caracteres</strong></li>
+    <li>✅ Pelo menos <strong>1 letra</strong> (a-z ou A-Z)</li>
+    <li>✅ Pelo menos <strong>1 número</strong> (0-9)</li>
+    <li>❌ Não pode ser uma senha comum (123456, password, admin, etc.)</li>
+  </ul>
+  <p>Enquanto digita, aparece <strong>em tempo real</strong> um indicador de força:</p>
+  <table>
+    <tr>
+      <th>Indicador</th>
+      <th>Significado</th>
+    </tr>
+    <tr>
+      <td><span style="color:#DC2626;"><strong>Fraca</strong></span></td>
+      <td>Apenas cumpre o mínimo — aceite mas pouco seguro</td>
+    </tr>
+    <tr>
+      <td><span style="color:#F59E0B;"><strong>Média</strong></span></td>
+      <td>Combinação razoável de letras e números</td>
+    </tr>
+    <tr>
+      <td><span style="color:#16A34A;"><strong>Forte</strong></span></td>
+      <td>Combinação complexa — <strong>recomendado</strong></td>
+    </tr>
+  </table>
+  <div class="dica">
+    Uma boa senha combina letras maiúsculas, minúsculas, números e símbolos. Exemplo: <code>Farma2026!</code> — é curta mas forte.
+  </div>
+  <div class="atencao">
+    Anote sempre a senha antes de criar a conta. Se o utilizador esquecer a senha e o email for inventado, terá de recriar a conta de raiz.
+  </div>
+
+  <h3>10.3. Apagar um utilizador</h3>
   <ol class="passos">
     <li>Na tabela, clique no 🗑️ ao lado do utilizador</li>
     <li>Confirme</li>
@@ -682,10 +784,6 @@
 
   <div class="nota">
     O utilizador perde acesso ao login, mas as vendas que fez ficam registadas no histórico. O nome continua visível nas vendas antigas.
-  </div>
-
-  <div class="dica">
-    <strong>Anote sempre:</strong> email + senha + tipo em papel antes de criar a conta. Se o utilizador esquecer a senha e o email for falso, é necessário recriar a conta.
   </div>
 </div>
 
@@ -752,6 +850,18 @@
 
   <h4>Posso vender um produto que está vencido?</h4>
   <p>Tecnicamente sim, mas não deve. O sistema alerta sobre produtos a vencer, mas não bloqueia a venda. A responsabilidade é do operador.</p>
+
+  <h4>A app ficou escura. É bug?</h4>
+  <p>Não. Alguém ativou o modo escuro clicando no ícone da lua 🌙 no topo direito. Para voltar ao tema claro, clique no mesmo ícone (agora em formato de sol ☀️). A preferência fica guardada no telemóvel.</p>
+
+  <h4>Fui deslogado automaticamente. Porquê?</h4>
+  <p>A app termina a sessão após 30 minutos sem atividade por segurança. Se ninguém tocar no ecrã durante esse tempo, o sistema faz logout para proteger os dados. Basta fazer login novamente.</p>
+
+  <h4>Apareceu uma notificação verde no topo. O que significa?</h4>
+  <p>É uma <strong>confirmação de sucesso</strong>. Significa que a operação correu bem (venda finalizada, produto salvo, etc.). Desaparece sozinha em 3 segundos — não precisa de fazer nada.</p>
+
+  <h4>Porque é que a minha senha é recusada?</h4>
+  <p>A app exige senhas com pelo menos 6 caracteres, incluindo 1 letra e 1 número. Se a mensagem diz "Senha demasiado comum", a senha está numa lista de senhas fracas conhecidas. Escolha outra.</p>
 </div>
 
 <!-- ==================== CAP 13 - BOAS PRÁTICAS ==================== -->
@@ -763,6 +873,7 @@
     <li>Faça login com a sua conta individual</li>
     <li>Verifique o Painel: há produtos a vencer ou em falta?</li>
     <li>Confirme que o stock físico bate com o do sistema</li>
+    <li>Escolha o tema (claro/escuro) adequado ao ambiente</li>
   </ul>
 
   <h3>13.2. Durante as vendas</h3>
@@ -771,6 +882,7 @@
     <li>Pergunte ao cliente se quer NIF para fatura</li>
     <li>Imprima ou envie o recibo — é prova da venda</li>
     <li>Nunca feche a venda antes de confirmar a receita se o produto a exige</li>
+    <li>Repare nas notificações coloridas — indicam o resultado da operação</li>
   </ul>
 
   <h3>13.3. No fim do turno</h3>
@@ -797,6 +909,19 @@
     <li>Exportar relatórios para arquivo em Excel</li>
   </ul>
 
+  <h3>13.6. Segurança — recomendações</h3>
+  <ul>
+    <li><strong>Senhas únicas</strong> — cada utilizador tem a sua conta e senha; nunca partilhar</li>
+    <li><strong>Logout no fim do turno</strong> — especialmente em equipamentos partilhados</li>
+    <li><strong>Nunca deixar sessão aberta</strong> sem ninguém a usar o telemóvel</li>
+    <li><strong>Senhas fortes</strong> — usar o indicador de força (escolher "Forte" sempre que possível)</li>
+    <li><strong>Verificar utilizadores</strong> — uma vez por mês, apagar contas de pessoas que já não trabalham na farmácia</li>
+    <li><strong>Modo escuro</strong> — usar em turnos noturnos para reduzir cansaço visual</li>
+  </ul>
+  <div class="atencao">
+    A remoção de um utilizador não apaga as vendas que ele fez. O histórico fica sempre registado, com o nome do operador — é uma proteção legal importante.
+  </div>
+
   <div class="dica">
     Uma farmácia organizada faz o fecho de caixa <strong>todos os dias</strong> e a contagem de stock <strong>todas as semanas</strong>. Isto evita surpresas no final do mês.
   </div>
@@ -805,7 +930,7 @@
 <!-- ==================== FIM ==================== -->
 <div class="rodape">
   <p><strong>FarmaStock — Manual do Utilizador</strong></p>
-  <p>Versão 1.0 — 2026</p>
+  <p>Versão 1.1 — 2026</p>
   <p>Para dúvidas técnicas, contacte o administrador do sistema.</p>
 </div>
 
