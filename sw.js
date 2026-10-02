@@ -33,15 +33,12 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Tenta sempre a rede primeiro (para apanhar atualizações); usa a cache só se estiver offline
+// Intercepa os pedidos para carregar instantaneamente da cache
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        const responseClone = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-        return networkResponse;
-      })
-      .catch(() => caches.match(event.request))
+    caches.match(event.request).then((cachedResponse) => {
+      // Retorna da cache se existir, senão vai à rede
+      return cachedResponse || fetch(event.request);
+    })
   );
 });
