@@ -11,7 +11,7 @@
     
     <!-- Configurações para PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#075e54">
+    <meta name="theme-color" content="#0F766E">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FarmaStock">
@@ -28,13 +28,71 @@
     <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-auth-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/firebase@10.7.1/firebase-firestore-compat.js"></script>
 
+    <!-- Aviso visível de erros de arranque (evita ecrã em branco) -->
+    <script>
+        (function () {
+            function mostrar(msg) {
+                var d = document.getElementById('erro-arranque');
+                if (!d) {
+                    d = document.createElement('div');
+                    d.id = 'erro-arranque';
+                    d.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#dc2626;color:#fff;padding:12px 14px;border-radius:10px;font:14px/1.4 system-ui,sans-serif;white-space:pre-wrap;word-break:break-word';
+                    document.documentElement.appendChild(d);
+                }
+                d.textContent += (d.textContent ? '\n\n' : '') + '⚠️ ' + msg;
+            }
+            window.mostrarErroArranque = mostrar;
+            window.addEventListener('error', function (e) {
+                mostrar('Erro: ' + (e.message || 'ficheiro não carregou') +
+                        (e.filename ? '\n(' + e.filename.split('/').pop() + (e.lineno ? ':' + e.lineno : '') + ')' : ''));
+            }, true);
+            window.addEventListener('unhandledrejection', function (e) {
+                mostrar('Erro: ' + ((e.reason && e.reason.message) || e.reason));
+            });
+        })();
+    </script>
+    <!-- Configuração do Firebase desta farmácia (único ficheiro a editar por cliente) -->
+    <script src="firebase-config.js"></script>
+    <script>
+        if (typeof firebaseConfig === 'undefined') {
+            window.mostrarErroArranque('O ficheiro firebase-config.js não carregou ou tem erro. Confirma que existe na mesma pasta do index.html e que contém só: const firebaseConfig = { ... };');
+        } else if (JSON.stringify(firebaseConfig).indexOf('COLAR_AQUI') !== -1) {
+            window.mostrarErroArranque('O firebase-config.js ainda tem COLAR_AQUI. Cola os valores do Firebase (Configurações do projeto → Geral → Seus aplicativos → Config).');
+        }
+    </script>
+    <!-- Marca da farmácia: cor principal (opcional, vem de marcaFarmacia no firebase-config.js) -->
+    <script>
+        (function () {
+            function hexOk(h) { return /^#[0-9a-fA-F]{6}$/.test(h || ''); }
+            function rgb(h) { return [1, 3, 5].map(function (i) { return parseInt(h.substr(i, 2), 16); }); }
+            function misturar(h, alvo, p) {
+                var a = rgb(h), b = rgb(alvo);
+                return '#' + a.map(function (v, i) {
+                    var n = Math.round(v + (b[i] - v) * p);
+                    return ('0' + n.toString(16)).slice(-2);
+                }).join('');
+            }
+            var m = (typeof marcaFarmacia !== 'undefined' && marcaFarmacia) ? marcaFarmacia : {};
+            var cor = hexOk(m.cor) ? m.cor : '#0F766E';
+            var cor2 = hexOk(m.corSecundaria) ? m.corSecundaria
+                     : (cor.toLowerCase() === '#0f766e' ? '#0D9488' : misturar(cor, '#ffffff', 0.12));
+            window.COR_PRIMARIA = cor;
+            window.COR_SECUNDARIA = cor2;
+            window.COR_PRIMARIA_RGBA = function (a) { var c = rgb(cor); return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; };
+            document.documentElement.style.setProperty('--cor-primaria', cor);
+            document.documentElement.style.setProperty('--cor-secundaria', cor2);
+            var tc = document.querySelector('meta[name="theme-color"]');
+            if (tc) tc.setAttribute('content', cor);
+        })();
+    </script>
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#0F766E',
-                        secondary: '#0D9488',
+                        primary: COR_PRIMARIA,
+                        secondary: COR_SECUNDARIA,
                         danger: '#DC2626',
                         warning: '#F59E0B',
                         success: '#16A34A',
@@ -76,7 +134,7 @@ body.dark nav {
 body.dark nav button {
     color: #e2e8f0 !important;
 }
-body.dark nav button:hover { background: rgba(15,118,110,0.25) !important; }
+body.dark nav button:hover { background: color-mix(in srgb, var(--cor-primaria) 25%, transparent) !important; }
 
 /* Fundo geral dos contentores */
 body.dark #app-principal { background: #0f172a !important; }
@@ -139,11 +197,11 @@ body.dark button.border { background: #1e293b !important; color: #e2e8f0 !import
 body.dark input[type="checkbox"] {
     background: #1e293b !important;
     border: 2px solid #475569 !important;
-    accent-color: #0F766E;
+    accent-color: var(--cor-primaria);
 }
 body.dark input[type="checkbox"]:checked {
-    background: #0F766E !important;
-    border-color: #0F766E !important;
+    background: var(--cor-primaria) !important;
+    border-color: var(--cor-primaria) !important;
       }
 
       /* Textos coloridos no modo escuro */
@@ -237,7 +295,7 @@ body.dark #modal-entrada > div {
 .toast-sucesso { background: #16A34A; }
 .toast-erro    { background: #DC2626; }
 .toast-aviso   { background: #F59E0B; color: #1f2937; }
-.toast-info    { background: #0F766E; }
+.toast-info    { background: var(--cor-primaria); }
 
 .toast i.fa {
     font-size: 18px;
@@ -305,7 +363,7 @@ body { transition: background-color 0.3s ease, color 0.3s ease; }
                     <i class="fa fa-sign-in mr-2"></i> Entrar
                 </button>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 14px;">
-                    <a href="#" onclick="mostrarCriarConta(); return false;" style="color: #075e54; text-decoration: none; font-weight: 600;">Criar Conta</a>
+                    <a href="#" onclick="mostrarCriarConta(); return false;" style="color: var(--cor-primaria); text-decoration: none; font-weight: 600;">Criar Conta</a>
                     <a href="#" onclick="mostrarRecuperarSenha(); return false;" style="color: #666666; text-decoration: none;">Esqueceu a senha?</a>
                 </div>
             </form>
@@ -1196,17 +1254,6 @@ body { transition: background-color 0.3s ease, color 0.3s ease; }
 
 
     <script>
-        // ==================================================
-        // 🔴 CONFIGURAÇÃO DO FIREBASE 🔴
-        // ==================================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyC4JPzPRnI2R0vYKDngIc55-D2v_BMUh54",
-            authDomain: "farmastock-fbbd2.firebaseapp.com",
-            projectId: "farmastock-fbbd2",
-            storageBucket: "farmastock-fbbd2.firebasestorage.app",
-            messagingSenderId: "535073309658",
-            appId: "1:535073309658:web:e208aa2389ad8aa95136e3"
-        };
 
         firebase.initializeApp(firebaseConfig);
       // Aplicar tema guardado assim que o script carrega
@@ -1313,11 +1360,43 @@ function escaparHTML(texto) {
         });
 
         // Função central para carregar a aplicação após autenticação
+        async function etapa(nome, fn) {
+            try { return await fn(); }
+            catch (e) { e.message = '[' + nome + '] ' + (e && e.message ? e.message : e); throw e; }
+        }
+
         async function iniciarAplicacao(firebaseUser) {
             try {
-                const doc = await db.collection('utilizadores').doc(firebaseUser.uid).get();
-                if (!doc.exists) throw new Error("Utilizador não encontrado na base de dados. UID: " + firebaseUser.uid);
-                
+                let doc = await etapa('ler o teu perfil (utilizadores)', () => db.collection('utilizadores').doc(firebaseUser.uid).get());
+
+                // Primeiro acesso da instalação: se ainda não existe a marca "instalado",
+                // a primeira conta a entrar torna-se ADMIN. Depois disso esta via fica fechada
+                // (as regras do Firestore também a bloqueiam).
+                if (!doc.exists) {
+                    const marca = await etapa('ler a marca instalado (configuracoes)', () => db.collection('configuracoes').doc('instalado').get());
+                    if (!marca.exists) {
+                        const emailConta = firebaseUser.email || '';
+                        await db.collection('utilizadores').doc(firebaseUser.uid).set({
+                            nome: firebaseUser.displayName || emailConta.split('@')[0] || 'Administrador',
+                            email: emailConta,
+                            tipo: 'admin',
+                            criadoEm: new Date().toISOString()
+                        });
+                        await db.collection('configuracoes').doc('instalado').set({
+                            em: new Date().toISOString(),
+                            por: firebaseUser.uid
+                        });
+                        doc = await db.collection('utilizadores').doc(firebaseUser.uid).get();
+                    }
+                }
+
+                if (!doc.exists) {
+                    throw new Error(
+                        "Esta conta ainda não tem perfil. Peça ao administrador para a criar na área Utilizadores.\n" +
+                        "UID: " + firebaseUser.uid
+                    );
+                }
+
                 utilizadorAtual = { id: firebaseUser.uid, ...doc.data() };
 console.log("📦 Dados do utilizador:", utilizadorAtual);
 
@@ -1333,15 +1412,15 @@ aplicarPermissoes(tipoUtilizador);
                 document.getElementById('tela-login').classList.add('hidden');
                 document.getElementById('app-principal').classList.remove('hidden');
 
-                await carregarConfiguracoesGerais();
-                await carregarDadosDashboard();
-                await carregarListaProdutos();
-                await carregarListaUtilizadores();
+                await etapa('configuracoes gerais', () => carregarConfiguracoesGerais());
+                await etapa('painel (produtos)', () => carregarDadosDashboard());
+                await etapa('lista de produtos', () => carregarListaProdutos());
+                await etapa('lista de utilizadores', () => carregarListaUtilizadores());
                 inicializarGraficos();
 
                 // Executar verificação de backup automático (apenas para Admin)
                 if (tipoUtilizador === 'admin') {
-                    await verificarEExecutarBackup();
+                    await etapa('copia de seguranca (produtos/vendas/utilizadores)', () => verificarEExecutarBackup());
                 }
 
             } catch (erro) {
@@ -1811,7 +1890,7 @@ async function entradaRapida(prodId) {
                 type: 'line',
                 data: {
                     labels: ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],
-                    datasets: [{ label: 'Vendas (Kz)', data: [0,0,0,0,0,0,0], borderColor: '#0F766E', tension: 0.3, fill:true, backgroundColor:'rgba(15,118,110,0.1)'}]
+                    datasets: [{ label: 'Vendas (Kz)', data: [0,0,0,0,0,0,0], borderColor: COR_PRIMARIA, tension: 0.3, fill:true, backgroundColor: COR_PRIMARIA_RGBA(0.1)}]
                 },
                 options: { responsive:true, plugins:{legend:{display:false}} }
             });
@@ -2484,7 +2563,7 @@ function emitirFatura() {
                     {
                         width: '*',
                         stack: [
-                            { text: farmaciaNome, fontSize: 18, bold: true, color: '#0F766E' },
+                            { text: farmaciaNome, fontSize: 18, bold: true, color: COR_PRIMARIA },
                             { text: endereco, fontSize: 10, color: '#444' },
                             { text: telefone ? `Tel: ${telefone}` : '', fontSize: 10, color: '#444' },
                             { text: nifFarmacia ? `NIF: ${nifFarmacia}` : '', fontSize: 10, color: '#444', bold: true }
@@ -2493,7 +2572,7 @@ function emitirFatura() {
                     {
                         width: 'auto',
                         stack: [
-                            { text: 'FATURA', fontSize: 20, bold: true, color: '#0F766E', alignment: 'right' },
+                            { text: 'FATURA', fontSize: 20, bold: true, color: COR_PRIMARIA, alignment: 'right' },
                             { text: `Nº ${numFatura}`, fontSize: 11, alignment: 'right' },
                             { text: `Data: ${dataFatura}`, fontSize: 10, color: '#444', alignment: 'right' },
                             { text: `Hora: ${horaFatura}`, fontSize: 10, color: '#444', alignment: 'right' }
@@ -2502,7 +2581,7 @@ function emitirFatura() {
                 ]
             },
 
-            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#0F766E' }], margin: [0, 8, 0, 10] },
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: COR_PRIMARIA }], margin: [0, 8, 0, 10] },
 
             // ---------- DADOS DO CLIENTE ----------
             {
@@ -2560,8 +2639,8 @@ function emitirFatura() {
                                     { text: `${valorIVA.toFixed(2)} Kz`, fontSize: 9, alignment: 'right', border: [false, false, false, false] }
                                 ],
                                 [
-                                    { text: 'TOTAL:', fontSize: 12, bold: true, color: '#0F766E', border: [false, true, false, false] },
-                                    { text: `${(v.total || 0).toFixed(2)} Kz`, fontSize: 12, bold: true, color: '#0F766E', alignment: 'right', border: [false, true, false, false] }
+                                    { text: 'TOTAL:', fontSize: 12, bold: true, color: COR_PRIMARIA, border: [false, true, false, false] },
+                                    { text: `${(v.total || 0).toFixed(2)} Kz`, fontSize: 12, bold: true, color: COR_PRIMARIA, alignment: 'right', border: [false, true, false, false] }
                                 ],
                                 [
                                     { text: 'Valor Pago:', fontSize: 9, border: [false, false, false, false] },
@@ -2600,7 +2679,7 @@ function emitirFatura() {
 
             // ---------- RODAPÉ ----------
             { text: 'Documento emitido por FarmaStock', fontSize: 8, color: '#888', alignment: 'center', margin: [0, 40, 0, 0], italics: true },
-            { text: 'Obrigado pela sua preferência!', fontSize: 9, color: '#0F766E', alignment: 'center', bold: true, margin: [0, 4, 0, 0] }
+            { text: 'Obrigado pela sua preferência!', fontSize: 9, color: COR_PRIMARIA, alignment: 'center', bold: true, margin: [0, 4, 0, 0] }
         ],
 
         styles: {
@@ -2608,7 +2687,7 @@ function emitirFatura() {
                 bold: true,
                 fontSize: 9,
                 fillColor: '#F0FDF4',
-                color: '#0F766E'
+                color: COR_PRIMARIA
             }
         }
     };
@@ -3067,9 +3146,9 @@ function exportarRankingPDF() {
     const docDefinition = {
         pageSize: 'A4', pageMargins: [40, 40, 40, 40],
         content: [
-            { text: farmaciaNome, fontSize: 16, bold: true, color: '#0F766E', alignment: 'center' },
+            { text: farmaciaNome, fontSize: 16, bold: true, color: COR_PRIMARIA, alignment: 'center' },
             { text: endereco, fontSize: 9, color: '#666', alignment: 'center' },
-            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#0F766E' }], margin: [0, 6, 0, 6] },
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: COR_PRIMARIA }], margin: [0, 6, 0, 6] },
             { text: 'Produtos Mais Vendidos', fontSize: 13, bold: true, alignment: 'center', margin: [0, 4, 0, 2] },
             { text: `Gerado em ${agora}`, fontSize: 8, color: '#888', alignment: 'center', margin: [0, 0, 0, 12] },
             {
@@ -3078,11 +3157,11 @@ function exportarRankingPDF() {
                     widths: ['auto', '*', 'auto', 'auto', 'auto'],
                     body: [
                         [
-                            { text: '#', bold: true, fillColor: '#F0FDF4', color: '#0F766E' },
-                            { text: 'Produto', bold: true, fillColor: '#F0FDF4', color: '#0F766E' },
-                            { text: 'Qtd', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'center' },
-                            { text: 'Faturação', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'right' },
-                            { text: 'Lucro', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'right' }
+                            { text: '#', bold: true, fillColor: '#F0FDF4', color: COR_PRIMARIA },
+                            { text: 'Produto', bold: true, fillColor: '#F0FDF4', color: COR_PRIMARIA },
+                            { text: 'Qtd', bold: true, fillColor: '#F0FDF4', color: COR_PRIMARIA, alignment: 'center' },
+                            { text: 'Faturação', bold: true, fillColor: '#F0FDF4', color: COR_PRIMARIA, alignment: 'right' },
+                            { text: 'Lucro', bold: true, fillColor: '#F0FDF4', color: COR_PRIMARIA, alignment: 'right' }
                         ],
                         ...dadosRankingAtual.map((p, i) => [
                             String(i + 1), p.nome, String(p.qtd),
@@ -3121,9 +3200,9 @@ function exportarLucroPeriodoPDF() {
     const docDefinition = {
         pageSize: 'A4', pageMargins: [40, 40, 40, 40],
         content: [
-            { text: farmaciaNome, fontSize: 16, bold: true, color: '#0F766E', alignment: 'center' },
+            { text: farmaciaNome, fontSize: 16, bold: true, color: COR_PRIMARIA, alignment: 'center' },
             { text: endereco, fontSize: 9, color: '#666', alignment: 'center' },
-            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#0F766E' }], margin: [0, 6, 0, 6] },
+            { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: COR_PRIMARIA }], margin: [0, 6, 0, 6] },
             { text: 'Lucro por Período', fontSize: 13, bold: true, alignment: 'center', margin: [0, 4, 0, 2] },
             { text: `Gerado em ${agora}`, fontSize: 8, color: '#888', alignment: 'center', margin: [0, 0, 0, 12] },
             { text: `Faturação Total: ${totalFat.toFixed(2)} Kz`, fontSize: 9, margin: [0, 0, 0, 2] },
@@ -3134,11 +3213,11 @@ function exportarLucroPeriodoPDF() {
                     widths: ['*', 'auto', 'auto', 'auto', 'auto'],
                     body: [
                         [
-                            { text: 'Data', bold: true, fillColor: '#F0FDF4', color: '#0F766E' },
-                            { text: 'Vendas', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'center' },
-                            { text: 'Faturação', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'right' },
-                            { text: 'Lucro', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'right' },
-                            { text: 'Margem', bold: true, fillColor: '#F0FDF4', color: '#0F766E', alignment: 'right' }
+                            { text: 'Data', bold: true, fillColor: '#F0FDF4', color: COR_PRIMARIA },
+                            { text: 'Vendas', bold: true, fillColor: '#F0FDF4', color: COR_PRIMARIA, alignment: 'center' },
+                            { text: 'Faturação', bold: true, fillColor: '#F0FDF4', color: COR_PRIMARIA, alignment: 'right' },
+                            { text: 'Lucro', bold: true, fillColor: '#F0FDF4', color: COR_PRIMARIA, alignment: 'right' },
+                            { text: 'Margem', bold: true, fillColor: '#F0FDF4', color: COR_PRIMARIA, alignment: 'right' }
                         ],
                         ...dadosLucroPeriodoAtual.map(d => {
                             const m = d.faturado > 0 ? (d.lucro / d.faturado) * 100 : 0;
@@ -3365,18 +3444,18 @@ function imprimirFecho() {
             <title>Fecho de Caixa — ${dataExtenso}</title>
             <style>
                 body { font-family: Arial, sans-serif; padding: 20px; color: #222; max-width: 800px; margin: 0 auto; }
-                h1 { text-align: center; margin: 0; font-size: 22px; color: #0F766E; }
+                h1 { text-align: center; margin: 0; font-size: 22px; color: ${COR_PRIMARIA}; }
                 h2 { text-align: center; margin: 4px 0; font-size: 14px; font-weight: normal; color: #555; }
                 h3 { text-align: center; margin: 12px 0; font-size: 16px; }
-                .linha { border-top: 2px solid #0F766E; margin: 10px 0; }
+                .linha { border-top: 2px solid ${COR_PRIMARIA}; margin: 10px 0; }
                 table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
                 th { background: #f0f0f0; padding: 8px; text-align: left; border-bottom: 1px solid #ccc; }
                 td { padding: 6px 8px; border-bottom: 1px solid #eee; }
                 .totais { display: flex; justify-content: space-between; margin: 16px 0; gap: 8px; }
                 .totais > div { flex: 1; text-align: center; border: 1px solid #ccc; padding: 8px; border-radius: 4px; }
                 .totais .label { font-size: 10px; color: #666; text-transform: uppercase; }
-                .totais .valor { font-size: 16px; font-weight: bold; color: #0F766E; margin-top: 2px; }
-                .destaque { background: #F0FDF4; border: 2px solid #0F766E; padding: 12px; margin: 16px 0; }
+                .totais .valor { font-size: 16px; font-weight: bold; color: ${COR_PRIMARIA}; margin-top: 2px; }
+                .destaque { background: #F0FDF4; border: 2px solid ${COR_PRIMARIA}; padding: 12px; margin: 16px 0; }
                 .destaque table { margin: 0; }
                 .destaque td { padding: 4px; border: none; }
                 .assinaturas { display: flex; justify-content: space-around; margin-top: 60px; gap: 40px; }
@@ -3423,7 +3502,7 @@ function imprimirFecho() {
                     </tr>
                     <tr>
                         <td><strong>Faturação Líquida:</strong></td>
-                        <td style="text-align:right;font-size:16px;color:#0F766E;"><strong>${d.liquido.toFixed(2)} Kz</strong></td>
+                        <td style="text-align:right;font-size:16px;color:${COR_PRIMARIA};"><strong>${d.liquido.toFixed(2)} Kz</strong></td>
                     </tr>
                 </table>
             </div>
@@ -3545,8 +3624,18 @@ function partilharFechoWhatsApp() {
                 titulo.textContent = 'Histórico de Vendas';
                 const snap = await db.collection('vendas').orderBy('data', 'desc').get();
                 dadosRelatorio = snap.docs.map(d => d.data());
+                // Suporta vendas novas (vários itens em "itens") e vendas antigas (1 produto)
+                const itensDaVenda = (v) => (Array.isArray(v.itens) && v.itens.length > 0)
+                    ? v.itens
+                    : (v.produtoNome ? [{ produtoNome: v.produtoNome, quantidade: v.quantidade }] : []);
                 conteudo.innerHTML = `<table class="w-full text-xs"><tr><th>Data</th><th>Produto</th><th>Qtd</th><th>Total</th></tr>` +
-                    dadosRelatorio.map(v => `<tr><td>${new Date(v.data).toLocaleDateString()}</td><td>${v.produtoNome}</td><td>${v.quantidade}</td><td>${v.total} Kz</td></tr>`).join('') + `</table>`;
+                    dadosRelatorio.map(v => {
+                        const itens = itensDaVenda(v);
+                        const nomes = itens.length ? itens.map(i => escaparHTML(i.produtoNome)).join(', ') : '—';
+                        const qtd = itens.reduce((s, i) => s + (Number(i.quantidade) || 0), 0);
+                        const marca = v.anulada ? ' <span class="text-red-600 font-bold">(ANULADA)</span>' : '';
+                        return `<tr><td>${new Date(v.data).toLocaleDateString('pt-AO')}</td><td>${nomes}${marca}</td><td>${qtd}</td><td>${v.total} Kz</td></tr>`;
+                    }).join('') + `</table>`;
             } else if (tipo === 'lucro') {
                 titulo.textContent = 'Relatório de Lucro e Margem';
                 const snap = await db.collection('vendas').get();
@@ -3581,7 +3670,7 @@ function partilharFechoWhatsApp() {
     const cabecalho = [
         { text: farmaciaNome, style: 'farmacia' },
         { text: `${endereco}${telefone ? ' • Tel: ' + telefone : ''}`, style: 'endereco' },
-        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: '#0F766E' }], margin: [0, 6, 0, 6] },
+        { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 2, lineColor: COR_PRIMARIA }], margin: [0, 6, 0, 6] },
         { text: titulo, style: 'titulo' },
         { text: `Gerado em ${agora}`, style: 'data' }
     ];
@@ -3761,12 +3850,12 @@ function partilharFechoWhatsApp() {
         pageMargins: [40, 40, 40, 40],
         content: conteudo,
         styles: {
-            farmacia: { fontSize: 16, bold: true, color: '#0F766E', alignment: 'center' },
+            farmacia: { fontSize: 16, bold: true, color: COR_PRIMARIA, alignment: 'center' },
             endereco: { fontSize: 9, color: '#666', alignment: 'center' },
             titulo: { fontSize: 13, bold: true, alignment: 'center', margin: [0, 4, 0, 2] },
             data: { fontSize: 8, color: '#888', alignment: 'center', margin: [0, 0, 0, 8] },
             resumo: { fontSize: 9, margin: [0, 1, 0, 1] },
-            th: { bold: true, fontSize: 8, fillColor: '#F0FDF4', color: '#0F766E' },
+            th: { bold: true, fontSize: 8, fillColor: '#F0FDF4', color: COR_PRIMARIA },
             rodape: { fontSize: 7, color: '#999', alignment: 'center', italics: true }
         }
     };

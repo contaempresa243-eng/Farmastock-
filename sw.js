@@ -1,8 +1,9 @@
-const CACHE_NAME = 'farmastock-v3';
+const CACHE_NAME = 'farmastock-v10';
 const assetsToCache = [
   './',
   './index.html',
   './manifest.json',
+  './firebase-config.js',
   './icon-192.png',
   './icon-512.png'
 ];
@@ -10,9 +11,7 @@ const assetsToCache = [
 // Instala o Service Worker e guarda os ficheiros em cache
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(assetsToCache);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(assetsToCache))
   );
   self.skipWaiting();
 });
@@ -20,25 +19,36 @@ self.addEventListener('install', (event) => {
 // Ativa e limpa caches antigas
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    })
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : null)))
+    )
   );
   self.clients.claim();
 });
 
-// Intercepa os pedidos para carregar instantaneamente da cache
+// Páginas HTML: rede primeiro (recebe sempre a versão mais recente), cache como reserva offline.
+// Restantes ficheiros: cache primeiro.
 self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  const isHTML = req.mode === 'navigate' ||
+    (req.headers.get('accept') || '').includes('text/html');
+
+  if (isHTML) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copia = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copia));
+          return res;
+        })
+        .catch(() => caches.match(req).then((c) => c || caches.match('./index.html')))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      // Retorna da cache se existir, senão vai à rede
-      return cachedResponse || fetch(event.request);
-    })
+    caches.match(req).then((cached) => cached || fetch(req))
   );
 });
